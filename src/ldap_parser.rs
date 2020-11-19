@@ -77,6 +77,14 @@ fn parse_relative_ldap_dn(i: &[u8]) -> Result<RelativeLdapDN> {
 
 // LDAPOID ::= OCTET STRING -- Constrained to <numericoid>
 //                          -- [RFC4512]
+fn parse_ldap_oid(i: &[u8]) -> Result<LdapOID> {
+    // read bytes
+    let (i, obj) = parse_ber_octetstring(i).map_err(Err::convert)?;
+    let b = obj.as_slice().or(Err(Err::Error(LdapError::InvalidDN)))?;
+    // convert to UTF-8
+    let s = std::str::from_utf8(b).or(Err(Err::Error(LdapError::InvalidDN)))?;
+    Ok((i, LdapOID(Cow::Borrowed(s))))
+}
 
 // URI ::= LDAPString     -- limited to characters permitted in
 //                                -- URIs
@@ -227,9 +235,15 @@ pub fn parse_ldap_message(i: &[u8]) -> Result<LdapMessage> {
                 Err(Err::Error(LdapError::InvalidMessageType))
             }
         }?;
+        let (i, controls) = opt(complete(parse_ber_tagged_implicit_g(
+            0,
+            |i, _hdr, _depth| many0(complete(parse_ldap_control))(i),
+        )))(i)?;
+        assert!(i.is_empty() || "error" == "remaining bytes"); // XXX remove me
         let msg = LdapMessage {
             message_id,
             protocol_op,
+            controls,
         };
         Ok((i, msg))
     })(i)
@@ -630,6 +644,43 @@ fn parse_ldap_change(i: &[u8]) -> Result<Change> {
         Ok((i, change))
     })(i)
 }
+
+// Control ::= SEQUENCE {
+//     controlType             LDAPOID,
+//     criticality             BOOLEAN DEFAULT FALSE,
+//     controlValue            OCTET STRING OPTIONAL }
+fn parse_ldap_control(i: &[u8]) -> Result<Control> {
+    parse_ber_sequence_defined_g(|_, i| {
+        let (i, control_type) = parse_ldap_oid(i)?;
+        let (i, maybe_critical) =
+            opt(complete(map_res(parse_ber_bool, |o| o.as_bool())))(i).map_err(Err::convert)?;
+        let criticality = maybe_critical.unwrap_or(false);
+        let (i, control_value) = opt(complete(map(
+            parse_ldap_octet_string_as_slice,
+            Cow::Borrowed,
+        )))(i)?;
+        assert!(i.is_empty() || "error" == "remaining bytes"); // XXX remove me
+        let control = Control {
+            control_type,
+            criticality,
+            control_value,
+        };
+        Ok((i, control))
+    })(i)
+}
+
+//
+//
+//
+//
+//
+// ----------------------- TESTS -----------------------
+//
+//
+//
+//
+//
+//
 
 #[cfg(test)]
 mod tests {

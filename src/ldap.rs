@@ -232,8 +232,15 @@ pub enum ProtocolOp<'a> {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct Control<'a> {
+    pub control_type: LdapOID<'a>,
+    pub criticality: bool,
+    pub control_value: Option<Cow<'a, [u8]>>,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct LdapMessage<'a> {
     pub message_id: MessageID,
     pub protocol_op: ProtocolOp<'a>,
-    // controls [0] Controls OPTIONAL
+    pub controls: Option<Vec<Control<'a>>>,
 }
