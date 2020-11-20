@@ -33,5 +33,6 @@ pub mod filter;
 pub mod ldap;
 pub mod ldap_parser;
 
-pub extern crate nom;
+pub use der_parser;
+pub use nom;
 pub use nom::{Err, IResult};
