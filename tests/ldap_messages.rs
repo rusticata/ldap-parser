@@ -1,5 +1,5 @@
 use ldap_parser::ldap::{ProtocolOp, SearchScope};
-use ldap_parser::ldap_parser::parse_ldap_message;
+use ldap_parser::parse_ldap_message;
 
 #[test]
 fn test_malformed_empty() {

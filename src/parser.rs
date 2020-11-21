@@ -9,7 +9,6 @@ use crate::ldap::*;
 use der_parser::ber::*;
 use nom::bytes::streaming::take;
 use nom::combinator::{complete, map, map_res, opt, verify};
-use nom::dbg_dmp;
 use nom::multi::{many0, many1};
 use nom::{Err, Needed};
 use std::borrow::Cow;
@@ -196,6 +195,33 @@ fn parse_ldap_result_content(i: &[u8]) -> Result<LdapResult> {
 //           ...,
 //           intermediateResponse  IntermediateResponse },
 //      controls       [0] Controls OPTIONAL }
+/// Parse a single LDAP message and return a structure borrowing fields from the input buffer
+///
+/// ```rust
+/// use ldap_parser::parse_ldap_message;
+/// use ldap_parser::ldap::{MessageID, ProtocolOp, ProtocolOpTag};
+///
+/// static DATA: &[u8] = include_bytes!("../assets/message-search-request-01.bin");
+///
+/// # fn main() {
+/// let res = parse_ldap_message(DATA);
+/// match res {
+///     Ok((rem, msg)) => {
+///         assert!(rem.is_empty());
+///         //
+///         assert_eq!(msg.message_id, MessageID(4));
+///         assert_eq!(msg.protocol_op.tag(), ProtocolOpTag::SearchRequest);
+///         match msg.protocol_op {
+///             ProtocolOp::SearchRequest(req) => {
+///                 assert_eq!(req.base_object.0, "dc=rccad,dc=net");
+///             },
+///             _ => panic!("Unexpected message type"),
+///         }
+///     },
+///     _ => panic!("LDAP parsing failed: {:?}", res),
+/// }
+/// # }
+/// ```
 pub fn parse_ldap_message(i: &[u8]) -> Result<LdapMessage> {
     // print_hex_dump(i, 32);
     parse_ber_sequence_defined_g(|_, i| {
@@ -249,13 +275,11 @@ pub fn parse_ldap_message(i: &[u8]) -> Result<LdapMessage> {
     })(i)
 }
 
+/// Parse a list of LDAP messages and return a structure borrowing fields from the input buffer
 pub fn parse_ldap_messages(i: &[u8]) -> Result<Vec<LdapMessage>> {
     // println!("parse_ldap_message: len={}", i.len());
     // print_hex_dump(i, 32);
-    many1(complete(dbg_dmp(
-        |d| parse_ldap_message(d),
-        "parse_ldap_message",
-    )))(i)
+    many1(complete(parse_ldap_message))(i)
 }
 
 // BindRequest ::= [APPLICATION 0] SEQUENCE {
@@ -814,7 +838,10 @@ mod tests {
         // dbg!(&req);
         //
         assert!(rem.is_empty());
-        assert_eq!(req.request_name.0, oid!(1.3.6.1.4.1.1466.20037).to_string());
+        assert_eq!(
+            req.request_name.0,
+            oid!(1.3.6 .1 .4 .1 .1466 .20037).to_string()
+        );
         assert!(req.request_value.is_none());
     }
 

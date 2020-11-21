@@ -22,7 +22,7 @@
 //! Parsing an LDAP message (in BER format):
 //!
 //! ```rust
-//! use ldap_parser::ldap_parser::parse_ldap_message;
+//! use ldap_parser::parse_ldap_message;
 //! use ldap_parser::ldap::{MessageID, ProtocolOp, ProtocolOpTag};
 //!
 //! static DATA: &[u8] = include_bytes!("../assets/message-search-request-01.bin");
@@ -66,11 +66,13 @@
 ))]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-mod filter_parser;
 pub mod error;
 pub mod filter;
+mod filter_parser;
 pub mod ldap;
-pub mod ldap_parser;
+mod parser;
+
+pub use parser::*;
 
 pub use der_parser;
 pub use nom;

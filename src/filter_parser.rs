@@ -1,7 +1,7 @@
 use crate::error::*;
 use crate::filter::*;
 use crate::ldap::*;
-use crate::ldap_parser::*;
+use crate::parser::*;
 use der_parser::ber::*;
 use nom::combinator::{complete, map, opt};
 use nom::multi::{many0, many1};

@@ -1,3 +1,5 @@
+//! Definition for types used in LDAP filters
+
 use crate::ldap::LdapString;
 use std::borrow::Cow;
 

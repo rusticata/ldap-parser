@@ -24,7 +24,7 @@ and is part of the [Rusticata](https://github.com/rusticata) project.
 Parsing an LDAP message (in BER format):
 
 ```rust
-use ldap_parser::ldap_parser::parse_ldap_message;
+use ldap_parser::parse_ldap_message;
 use ldap_parser::ldap::{MessageID, ProtocolOp, ProtocolOpTag};
 
 static DATA: &[u8] = include_bytes!("../assets/message-search-request-01.bin");

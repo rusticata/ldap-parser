@@ -1,3 +1,5 @@
+//! Definitions for LDAP types
+
 use crate::filter::*;
 use rusticata_macros::newtype_enum;
 use std::borrow::Cow;
