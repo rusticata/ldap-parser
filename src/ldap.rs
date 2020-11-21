@@ -2,7 +2,35 @@ use crate::filter::*;
 use rusticata_macros::newtype_enum;
 use std::borrow::Cow;
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
+pub struct ProtocolOpTag(pub u32);
+
+newtype_enum! {
+impl display ProtocolOpTag {
+    BindRequest = 0,
+    BindResponse = 1,
+    UnbindRequest = 2,
+    SearchRequest = 3,
+    SearchResultEntry = 4,
+    SearchResultDone = 5,
+    ModifyRequest = 6,
+    ModifyResponse = 7,
+    AddRequest = 8,
+    AddResponse = 9,
+    DelRequest = 10,
+    DelResponse = 11,
+    ModDnRequest = 12,
+    ModDnResponse = 13,
+    CompareRequest = 14,
+    CompareResponse = 15,
+    AbandonRequest = 16,
+    SearchResultReference = 19,
+    ExtendedRequest = 23,
+    ExtendedResponse = 24,
+}
+}
+
+#[derive(Default, PartialEq, Eq, Clone, Copy)]
 pub struct ResultCode(pub u32);
 
 newtype_enum! {
@@ -229,6 +257,35 @@ pub enum ProtocolOp<'a> {
     AbandonRequest(MessageID),
     ExtendedRequest(ExtendedRequest<'a>),
     ExtendedResponse(ExtendedResponse<'a>),
+}
+
+impl<'a> ProtocolOp<'a> {
+    // Get tag number associated with the operation
+    pub fn tag(&self) -> ProtocolOpTag {
+        let op = match self {
+            ProtocolOp::BindRequest(_) => 0,
+            ProtocolOp::BindResponse(_) => 1,
+            ProtocolOp::UnbindRequest => 2,
+            ProtocolOp::SearchRequest(_) => 3,
+            ProtocolOp::SearchResultEntry(_) => 4,
+            ProtocolOp::SearchResultDone(_) => 5,
+            ProtocolOp::ModifyRequest(_) => 6,
+            ProtocolOp::ModifyResponse(_) => 7,
+            ProtocolOp::AddRequest(_) => 8,
+            ProtocolOp::AddResponse(_) => 9,
+            ProtocolOp::DelRequest(_) => 10,
+            ProtocolOp::DelResponse(_) => 11,
+            ProtocolOp::ModDnRequest(_) => 12,
+            ProtocolOp::ModDnResponse(_) => 13,
+            ProtocolOp::CompareRequest(_) => 14,
+            ProtocolOp::CompareResponse(_) => 15,
+            ProtocolOp::AbandonRequest(_) => 16,
+            ProtocolOp::SearchResultReference(_) => 19,
+            ProtocolOp::ExtendedRequest(_) => 23,
+            ProtocolOp::ExtendedResponse(_) => 24,
+        };
+        ProtocolOpTag(op)
+    }
 }
 
 #[derive(Debug, PartialEq)]
