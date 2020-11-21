@@ -252,6 +252,5 @@ fn parse_ldap_matching_rule_assertion_content(i: &[u8]) -> Result<MatchingRuleAs
         assertion_value,
         dn_attributes,
     };
-    assert!(i.is_empty() || "error" == "matching assertion not fully parsed"); // XXX remove me
     Ok((i, assertion))
 }

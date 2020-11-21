@@ -265,7 +265,6 @@ pub fn parse_ldap_message(i: &[u8]) -> Result<LdapMessage> {
             0,
             |i, _hdr, _depth| many0(complete(parse_ldap_control))(i),
         )))(i)?;
-        assert!(i.is_empty() || "error" == "remaining bytes"); // XXX remove me
         let msg = LdapMessage {
             message_id,
             protocol_op,
@@ -313,7 +312,6 @@ fn parse_ldap_bind_response(i: &[u8]) -> Result<BindResponse> {
             opt(complete(parse_ber_tagged_implicit_g(7, |content, _, _| {
                 Ok((&b""[..], Cow::Borrowed(content)))
             })))(i)?;
-        assert!(i.is_empty() || "error" == "serverSaslCreds NYI"); // XXX remove me
         let req = BindResponse {
             result,
             server_sasl_creds,
@@ -362,7 +360,6 @@ fn parse_ldap_search_request(i: &[u8]) -> Result<SearchRequest> {
         let (i, types_only) = map_res(parse_ber_bool, |o| o.as_bool())(i).map_err(Err::convert)?;
         let (i, filter) = parse_ldap_filter(i)?;
         let (i, attributes) = parse_attribute_selection(i)?;
-        // assert!(i.is_empty() || "error" == "remaining bytes"); // XXX remove me
         let req = SearchRequest {
             base_object,
             scope,
@@ -384,7 +381,6 @@ fn parse_ldap_search_result_entry(i: &[u8]) -> Result<SearchResultEntry> {
     parse_ber_tagged_implicit_g(4, |i, _hdr, _depth| {
         let (i, object_name) = parse_ldap_dn(i)?;
         let (i, attributes) = parse_partial_attribute_list(i)?;
-        assert!(i.is_empty() || "error" == "remaining bytes"); // XXX remove me
         let res = SearchResultEntry {
             object_name,
             attributes,
@@ -412,7 +408,6 @@ fn parse_ldap_modify_request(i: &[u8]) -> Result<ModifyRequest> {
         let (i, object) = parse_ldap_dn(i)?;
         let (i, changes) =
             parse_ber_sequence_defined_g(|_, i| many1(complete(parse_ldap_change))(i))(i)?;
-        assert!(i.is_empty() || "error" == "remaining bytes"); // XXX remove me
         let res = ModifyRequest { object, changes };
         Ok((i, res))
     })(i)
@@ -422,7 +417,6 @@ fn parse_ldap_modify_request(i: &[u8]) -> Result<ModifyRequest> {
 fn parse_ldap_modify_response(i: &[u8]) -> Result<ModifyResponse> {
     parse_ber_tagged_implicit_g(7, |i, _hdr, _depth| {
         let (i, result) = parse_ldap_result_content(i)?;
-        assert!(i.is_empty() || "error" == "remaining bytes"); // XXX remove me
         let res = ModifyResponse { result };
         Ok((i, res))
     })(i)
@@ -435,7 +429,6 @@ fn parse_ldap_add_request(i: &[u8]) -> Result<AddRequest> {
     parse_ber_tagged_implicit_g(8, |i, _hdr, _depth| {
         let (i, entry) = parse_ldap_dn(i)?;
         let (i, attributes) = parse_attribute_list(i)?;
-        assert!(i.is_empty() || "error" == "remaining bytes"); // XXX remove me
         let res = AddRequest { entry, attributes };
         Ok((i, res))
     })(i)
@@ -479,7 +472,6 @@ fn parse_ldap_moddn_request(i: &[u8]) -> Result<ModDnRequest> {
                 Ok((&b""[..], oid))
             },
         )))(i)?;
-        assert!(i.is_empty() || "error" == "remaining bytes"); // XXX remove me
         let res = ModDnRequest {
             entry,
             newrdn,
@@ -502,7 +494,6 @@ fn parse_ldap_compare_request(i: &[u8]) -> Result<CompareRequest> {
     parse_ber_tagged_implicit_g(14, |i, _hdr, _depth| {
         let (i, entry) = parse_ldap_dn(i)?;
         let (i, ava) = parse_ldap_attribute_value_assertion(i)?;
-        assert!(i.is_empty() || "error" == "remaining bytes"); // XXX remove me
         let res = CompareRequest { entry, ava };
         Ok((i, res))
     })(i)
@@ -683,7 +674,6 @@ fn parse_ldap_control(i: &[u8]) -> Result<Control> {
             parse_ldap_octet_string_as_slice,
             Cow::Borrowed,
         )))(i)?;
-        assert!(i.is_empty() || "error" == "remaining bytes"); // XXX remove me
         let control = Control {
             control_type,
             criticality,
