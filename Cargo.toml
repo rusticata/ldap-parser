@@ -21,6 +21,10 @@ include = [
   "tests/*.rs"
 ]
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
 [dependencies]
 der-parser = "5.0.0-beta1"
 nom = "6.0"
