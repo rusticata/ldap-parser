@@ -17,6 +17,9 @@ pub enum LdapError {
     #[error("Invalid LDAP String encoding")]
     InvalidString,
 
+    #[error("Invalid LDAP Authentication Type")]
+    InvalidAuthenticationType,
+
     #[error("Invalid DN encoding")]
     InvalidDN,
 

@@ -604,7 +604,7 @@ fn parse_authentication_choice(i: &[u8]) -> Result<AuthenticationChoice> {
             Ok((i, AuthenticationChoice::Simple(Cow::Borrowed(b))))
         }
         3 => map(parse_sasl_credentials, AuthenticationChoice::Sasl)(rem),
-        _ => unimplemented!(),
+        _ => Err(Err::Error(LdapError::InvalidAuthenticationType)),
     }
 }
 
