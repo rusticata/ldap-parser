@@ -1,5 +1,6 @@
 //! Definitions for LDAP types
 
+use crate::error::Result;
 use crate::filter::*;
 use rusticata_macros::newtype_enum;
 use std::borrow::Cow;
@@ -306,9 +307,30 @@ pub struct Control<'a> {
     pub control_value: Option<Cow<'a, [u8]>>,
 }
 
+/// An LDAP Message according to RFC4511
 #[derive(Debug, PartialEq)]
 pub struct LdapMessage<'a> {
+    /// Message Identifier (32-bits unsigned integer)
+    ///
+    /// The messageID of a request MUST have a non-zero value different from the messageID of any
+    /// other request in progress in the same LDAP session.  The zero value is reserved for the
+    /// unsolicited notification message.
     pub message_id: MessageID,
+    /// The LDAP operation from this LDAP message
     pub protocol_op: ProtocolOp<'a>,
+    /// Message controls (optional)
+    ///
+    /// Controls provide a mechanism whereby the semantics and arguments of existing LDAP
+    /// operations may be extended.  One or more controls may be attached to a single LDAP message.
+    /// A control only affects the semantics of the message it is attached to.
     pub controls: Option<Vec<Control<'a>>>,
+}
+
+impl<'a> LdapMessage<'a> {
+    /// Parse a single LDAP message and return a structure borrowing fields from the input buffer
+    ///
+    /// See [parse_ldap_message](../fn.parse_ldap_message.html) for examples.
+    pub fn parse(i: &[u8]) -> Result<LdapMessage> {
+        crate::parser::parse_ldap_message(i)
+    }
 }
