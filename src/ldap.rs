@@ -29,6 +29,7 @@ impl display ProtocolOpTag {
     SearchResultReference = 19,
     ExtendedRequest = 23,
     ExtendedResponse = 24,
+    IntermediateResponse = 25,
 }
 }
 
@@ -237,6 +238,12 @@ pub struct ExtendedResponse<'a> {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct IntermediateResponse<'a> {
+    pub request_name: Option<LdapOID<'a>>,
+    pub request_value: Option<Cow<'a, [u8]>>,
+}
+
+#[derive(Debug, PartialEq)]
 pub enum ProtocolOp<'a> {
     BindRequest(BindRequest<'a>),
     BindResponse(BindResponse<'a>),
@@ -259,6 +266,7 @@ pub enum ProtocolOp<'a> {
     AbandonRequest(MessageID),
     ExtendedRequest(ExtendedRequest<'a>),
     ExtendedResponse(ExtendedResponse<'a>),
+    IntermediateResponse(IntermediateResponse<'a>),
 }
 
 impl<'a> ProtocolOp<'a> {
@@ -285,6 +293,7 @@ impl<'a> ProtocolOp<'a> {
             ProtocolOp::SearchResultReference(_) => 19,
             ProtocolOp::ExtendedRequest(_) => 23,
             ProtocolOp::ExtendedResponse(_) => 24,
+            ProtocolOp::IntermediateResponse(_) => 25,
         };
         ProtocolOpTag(op)
     }

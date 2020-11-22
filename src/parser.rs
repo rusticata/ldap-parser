@@ -255,6 +255,10 @@ pub fn parse_ldap_message(i: &[u8]) -> Result<LdapMessage> {
             )(i),
             23 => map(parse_ldap_extended_request, ProtocolOp::ExtendedRequest)(i),
             24 => map(parse_ldap_extended_response, ProtocolOp::ExtendedResponse)(i),
+            25 => map(
+                parse_ldap_intermediate_response,
+                ProtocolOp::IntermediateResponse,
+            )(i),
             _ => {
                 // print_hex_dump(i, 32);
                 // panic!("Protocol op {} not yet implemented", header.tag.0);
@@ -565,6 +569,31 @@ fn parse_ldap_extended_response(i: &[u8]) -> Result<ExtendedResponse> {
         )))(i)?;
         let resp = ExtendedResponse {
             result,
+            request_name,
+            request_value,
+        };
+        Ok((i, resp))
+    })(i)
+}
+
+// IntermediateResponse ::= [APPLICATION 25] SEQUENCE {
+//      responseName     [0] LDAPOID OPTIONAL,
+//      responseValue    [1] OCTET STRING OPTIONAL }
+fn parse_ldap_intermediate_response(i: &[u8]) -> Result<IntermediateResponse> {
+    parse_ber_tagged_implicit_g(25, |i, _hdr, _depth| {
+        let (i, request_name) = opt(complete(parse_ber_tagged_implicit_g(
+            0,
+            |i, _hdr, _depth| {
+                let s = std::str::from_utf8(i).or(Err(Err::Error(LdapError::InvalidDN)))?;
+                let oid = LdapOID(Cow::Borrowed(s));
+                Ok((&b""[..], oid))
+            },
+        )))(i)?;
+        let (i, request_value) = opt(complete(parse_ber_tagged_implicit_g(
+            1,
+            |i, _hdr, _depth| Ok((&b""[..], Cow::Borrowed(i))),
+        )))(i)?;
+        let resp = IntermediateResponse {
             request_name,
             request_value,
         };
