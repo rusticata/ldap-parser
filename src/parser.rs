@@ -224,7 +224,7 @@ fn parse_ldap_result_content(i: &[u8]) -> Result<LdapResult> {
 /// ```
 pub fn parse_ldap_message(i: &[u8]) -> Result<LdapMessage> {
     // print_hex_dump(i, 32);
-    parse_ber_sequence_defined_g(|_, i| {
+    parse_ber_sequence_defined_g(|i, _| {
         let (i, message_id) = parse_message_id(i)?;
         // read header of next element and look tag value
         let (_, header) = ber_read_element_header(i).map_err(Err::convert)?;
@@ -411,7 +411,7 @@ fn parse_ldap_modify_request(i: &[u8]) -> Result<ModifyRequest> {
     parse_ber_tagged_implicit_g(6, |i, _hdr, _depth| {
         let (i, object) = parse_ldap_dn(i)?;
         let (i, changes) =
-            parse_ber_sequence_defined_g(|_, i| many1(complete(parse_ldap_change))(i))(i)?;
+            parse_ber_sequence_defined_g(|i, _| many1(complete(parse_ldap_change))(i))(i)?;
         let res = ModifyRequest { object, changes };
         Ok((i, res))
     })(i)
@@ -657,17 +657,17 @@ fn parse_sasl_credentials(i: &[u8]) -> Result<SaslCredentials> {
 //      -- The LDAPString is constrained to
 //      -- <attributeSelector> in Section 4.5.1.8
 fn parse_attribute_selection(i: &[u8]) -> Result<Vec<LdapString>> {
-    parse_ber_sequence_defined_g(|_, i| many0(complete(parse_ldap_string))(i))(i)
+    parse_ber_sequence_defined_g(|i, _| many0(complete(parse_ldap_string))(i))(i)
 }
 
 // PartialAttributeList ::= SEQUENCE OF partialAttribute PartialAttribute
 fn parse_partial_attribute_list(i: &[u8]) -> Result<Vec<PartialAttribute>> {
-    parse_ber_sequence_defined_g(|_, i| many0(complete(parse_ldap_partial_attribute))(i))(i)
+    parse_ber_sequence_defined_g(|i, _| many0(complete(parse_ldap_partial_attribute))(i))(i)
 }
 
 // AttributeList ::= SEQUENCE OF attribute Attribute
 fn parse_attribute_list(i: &[u8]) -> Result<Vec<Attribute>> {
-    parse_ber_sequence_defined_g(|_, i| many0(complete(parse_ldap_attribute))(i))(i)
+    parse_ber_sequence_defined_g(|i, _| many0(complete(parse_ldap_attribute))(i))(i)
 }
 
 // change SEQUENCE {
@@ -678,7 +678,7 @@ fn parse_attribute_list(i: &[u8]) -> Result<Vec<Attribute>> {
 //               ...  },
 //          modification    PartialAttribute }
 fn parse_ldap_change(i: &[u8]) -> Result<Change> {
-    parse_ber_sequence_defined_g(|_, i| {
+    parse_ber_sequence_defined_g(|i, _| {
         let (i, operation) = map(parse_ldap_enum_as_u32, Operation)(i)?;
         let (i, modification) = parse_ldap_partial_attribute(i)?;
         let change = Change {
@@ -694,7 +694,7 @@ fn parse_ldap_change(i: &[u8]) -> Result<Change> {
 //     criticality             BOOLEAN DEFAULT FALSE,
 //     controlValue            OCTET STRING OPTIONAL }
 fn parse_ldap_control(i: &[u8]) -> Result<Control> {
-    parse_ber_sequence_defined_g(|_, i| {
+    parse_ber_sequence_defined_g(|i, _| {
         let (i, control_type) = parse_ldap_oid(i)?;
         let (i, maybe_critical) =
             opt(complete(map_res(parse_ber_bool, |o| o.as_bool())))(i).map_err(Err::convert)?;

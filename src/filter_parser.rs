@@ -37,7 +37,7 @@ fn parse_ldap_attribute_value_assertion_content(content: &[u8]) -> Result<Attrib
 }
 
 pub(crate) fn parse_ldap_attribute_value_assertion(i: &[u8]) -> Result<AttributeValueAssertion> {
-    parse_ber_sequence_defined_g(|_, i| parse_ldap_attribute_value_assertion_content(i))(i)
+    parse_ber_sequence_defined_g(|i, _| parse_ldap_attribute_value_assertion_content(i))(i)
 }
 
 // AssertionValue ::= OCTET STRING
@@ -58,9 +58,9 @@ fn parse_ldap_attribute_value(i: &[u8]) -> Result<AttributeValue> {
 //      type       AttributeDescription,
 //      vals       SET OF value AttributeValue }
 pub(crate) fn parse_ldap_partial_attribute(i: &[u8]) -> Result<PartialAttribute> {
-    parse_ber_sequence_defined_g(|_, i| {
+    parse_ber_sequence_defined_g(|i, _| {
         let (i, attr_type) = parse_ldap_string(i)?;
-        let (i, attr_vals) = parse_ber_set_defined_g(|_, inner| {
+        let (i, attr_vals) = parse_ber_set_defined_g(|inner, _| {
             many0(complete(
                 // dbg_dmp(|d| parse_ldap_attribute_value(d), "parse_partial_attribute")
                 parse_ldap_attribute_value,
@@ -78,9 +78,9 @@ pub(crate) fn parse_ldap_partial_attribute(i: &[u8]) -> Result<PartialAttribute>
 //      ...,
 //      vals (SIZE(1..MAX))})
 pub(crate) fn parse_ldap_attribute(i: &[u8]) -> Result<Attribute> {
-    parse_ber_sequence_defined_g(|_, i| {
+    parse_ber_sequence_defined_g(|i, _| {
         let (i, attr_type) = parse_ldap_string(i)?;
-        let (i, attr_vals) = parse_ber_set_defined_g(|_, inner| {
+        let (i, attr_vals) = parse_ber_set_defined_g(|inner, _| {
             many1(complete(
                 // dbg_dmp(|d| parse_ldap_attribute_value(d), "parse_partial_attribute")
                 parse_ldap_attribute_value,
@@ -188,7 +188,7 @@ pub(crate) fn parse_ldap_filter(i: &[u8]) -> Result<Filter> {
 fn parse_ldap_substrings_filter_content(i: &[u8]) -> Result<SubstringFilter> {
     let (i, filter_type) = parse_ldap_attribute_description(i)?;
     let (i, substrings) =
-        parse_ber_sequence_defined_g(|_, d| many1(complete(parse_ldap_substring))(d))(i)?;
+        parse_ber_sequence_defined_g(|d, _| many1(complete(parse_ldap_substring))(d))(i)?;
     let filter = SubstringFilter {
         filter_type,
         substrings,
@@ -197,7 +197,7 @@ fn parse_ldap_substrings_filter_content(i: &[u8]) -> Result<SubstringFilter> {
 }
 
 fn parse_ldap_substring(i: &[u8]) -> Result<Substring> {
-    parse_ber_container(|hdr, i| {
+    parse_ber_container(|i, hdr| {
         // in any case, this is an AssertionValue (== OCTET STRING)
         let empty: &[u8] = &[];
         let b = AssertionValue(Cow::Borrowed(i));
