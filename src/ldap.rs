@@ -271,7 +271,7 @@ pub enum ProtocolOp<'a> {
 }
 
 impl<'a> ProtocolOp<'a> {
-    // Get tag number associated with the operation
+    /// Get tag number associated with the operation
     pub fn tag(&self) -> ProtocolOpTag {
         let op = match self {
             ProtocolOp::BindRequest(_) => 0,
@@ -297,6 +297,21 @@ impl<'a> ProtocolOp<'a> {
             ProtocolOp::IntermediateResponse(_) => 25,
         };
         ProtocolOpTag(op)
+    }
+
+    /// Get the LDAP result, if present
+    pub fn result(&self) -> Option<&LdapResult> {
+        match self {
+            ProtocolOp::BindResponse(r) => Some(&r.result),
+            ProtocolOp::ModifyResponse(r) => Some(&r.result),
+            ProtocolOp::ExtendedResponse(r) => Some(&r.result),
+            ProtocolOp::SearchResultDone(ref r)
+            | ProtocolOp::AddResponse(ref r)
+            | ProtocolOp::DelResponse(ref r)
+            | ProtocolOp::ModDnResponse(ref r)
+            | ProtocolOp::CompareResponse(ref r) => Some(r),
+            _ => None,
+        }
     }
 }
 
