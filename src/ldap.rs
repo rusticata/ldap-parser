@@ -5,7 +5,7 @@ use crate::filter::*;
 use rusticata_macros::newtype_enum;
 use std::borrow::Cow;
 
-#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct ProtocolOpTag(pub u32);
 
 newtype_enum! {
@@ -34,7 +34,7 @@ impl display ProtocolOpTag {
 }
 }
 
-#[derive(Default, PartialEq, Eq, Clone, Copy)]
+#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct ResultCode(pub u32);
 
 newtype_enum! {
@@ -88,7 +88,7 @@ impl debug ResultCode {
 }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct MessageID(pub u32);
 
 #[derive(PartialEq, Eq, Clone, Copy)]
