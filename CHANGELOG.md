@@ -8,6 +8,13 @@
 
 ### Thanks
 
+## 0.2.0
+
+### Changed/Fixed
+
+- Update to der-parser 6.0 stable and nom 7
+- Set MSRV to 1.46
+
 ## 0.1.3
 
 ### Added
