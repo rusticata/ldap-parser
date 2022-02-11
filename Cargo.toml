@@ -28,7 +28,7 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-der-parser = "6.0.0"
+der-parser = "7.0.0"
 nom = "7.0"
 rusticata-macros = "4.0"
 thiserror = "1.0"
