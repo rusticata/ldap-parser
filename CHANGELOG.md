@@ -8,6 +8,13 @@
 
 ### Thanks
 
+## 0.3.0
+
+### Changed/Fixed
+
+- Update to der-parser 8.0
+- Set MSRV to 1.53
+
 ## 0.2.0
 
 ### Changed/Fixed

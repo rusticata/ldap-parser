@@ -1,6 +1,6 @@
 [package]
 name = "ldap-parser"
-version = "0.2.0"
+version = "0.3.0"
 description = "Parser for the LDAP protocol (RFC 4511)"
 authors = ["Pierre Chifflier <chifflier@wzdftpd.net>"]
 edition = "2018"
