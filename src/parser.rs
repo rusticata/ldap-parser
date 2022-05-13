@@ -228,7 +228,7 @@ pub fn parse_ldap_message(i: &[u8]) -> Result<LdapMessage> {
         let (i, message_id) = parse_message_id(i)?;
         // read header of next element and look tag value
         let (_, header) = ber_read_element_header(i).map_err(Err::convert)?;
-        let (i, protocol_op) = match header.tag.0 {
+        let (i, protocol_op) = match header.tag().0 {
             0 => map(parse_ldap_bind_request, ProtocolOp::BindRequest)(i),
             1 => map(parse_ldap_bind_response, ProtocolOp::BindResponse)(i),
             2 => parse_ldap_unbind_request(i),
@@ -608,12 +608,12 @@ fn parse_ldap_intermediate_response(i: &[u8]) -> Result<IntermediateResponse> {
 //      ...  }
 fn parse_authentication_choice(i: &[u8]) -> Result<AuthenticationChoice> {
     let (rem, header) = ber_read_element_header(i).map_err(Err::convert)?;
-    match header.tag.0 {
+    match header.tag().0 {
         0 => {
             // assume len is primitive, and just take bytes
             let sz = header
-                .len
-                .primitive()
+                .length()
+                .definite()
                 .map_err(|e| Err::Error(LdapError::Ber(e)))?;
             let (i, b) = take(sz)(rem)?;
             // // other solution: read content as octetstring and get slice

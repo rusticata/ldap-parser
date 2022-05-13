@@ -112,7 +112,7 @@ pub(crate) fn parse_ldap_filter(i: &[u8]) -> Result<Filter> {
     // read header of next element and look tag value
     let (_, header) = ber_read_element_header(i).map_err(Err::convert)?;
     // eprintln!("parse_ldap_filter: [{}] {:?}", header.tag.0, header);
-    match header.tag.0 {
+    match header.tag().0 {
         0 => {
             let (i, sub_filters) = parse_ber_tagged_implicit_g(0, |content, _hdr, _depth| {
                 many1(complete(parse_ldap_filter))(content)
@@ -201,7 +201,7 @@ fn parse_ldap_substring(i: &[u8]) -> Result<Substring> {
         // in any case, this is an AssertionValue (== OCTET STRING)
         let empty: &[u8] = &[];
         let b = AssertionValue(Cow::Borrowed(i));
-        match hdr.tag.0 {
+        match hdr.tag().0 {
             0 => Ok((empty, Substring::Initial(b))),
             1 => Ok((empty, Substring::Any(b))),
             2 => Ok((empty, Substring::Final(b))),
@@ -240,7 +240,7 @@ fn parse_ldap_matching_rule_assertion_content(i: &[u8]) -> Result<MatchingRuleAs
     let (i, dn_attributes) = opt(complete(parse_ber_tagged_implicit_g(
         4,
         |content, hdr, depth| {
-            let (rem, obj_content) = parse_ber_content(BerTag::Boolean)(content, &hdr, depth)?;
+            let (rem, obj_content) = parse_ber_content(Tag::Boolean)(content, &hdr, depth)?;
             let b = obj_content.as_bool()?;
             Ok((rem, b))
         },
