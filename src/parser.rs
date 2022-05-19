@@ -6,6 +6,7 @@ use crate::error::*;
 use crate::filter::*;
 use crate::filter_parser::*;
 use crate::ldap::*;
+use der_parser::asn1_rs::{Enumerated, FromBer};
 use der_parser::ber::*;
 use nom::bytes::streaming::take;
 use nom::combinator::{complete, map, map_res, opt, verify};
@@ -31,33 +32,25 @@ pub(crate) fn parse_ldap_string(i: &[u8]) -> Result<LdapString> {
 }
 
 #[inline]
-fn parse_ldap_octet_string(i: &[u8]) -> Result<BerObject> {
-    parse_ber_octetstring(i).map_err(Err::convert)
-}
-
-#[inline]
 pub(crate) fn parse_ldap_octet_string_as_slice(i: &[u8]) -> Result<&[u8]> {
-    map_res(parse_ldap_octet_string, |o| o.as_slice())(i)
+    <&[u8]>::from_ber(i).map_err(Err::convert)
 }
 
 #[inline]
 fn parse_ldap_int_as_u32(i: &[u8]) -> Result<u32> {
-    let (i, res) = parse_ber_u32(i).map_err(Err::convert)?;
-    Ok((i, res))
+    <u32>::from_ber(i).map_err(Err::convert)
 }
 #[inline]
 fn parse_ldap_enum_as_u32(i: &[u8]) -> Result<u32> {
-    let (i, obj) = parse_ber_enum(i).map_err(Err::convert)?;
-    let scope = obj.as_u32().map_err(|e| Err::Error(LdapError::Ber(e)))?;
-    Ok((i, scope))
+    let (i, obj) = Enumerated::from_ber(i).map_err(Err::convert)?;
+    Ok((i, obj.0))
 }
 
 // LDAPDN ::= LDAPString -- Constrained to <distinguishedName>
 //                       -- [RFC4514]
 fn parse_ldap_dn(i: &[u8]) -> Result<LdapDN> {
     // read bytes
-    let (i, obj) = parse_ber_octetstring(i).map_err(Err::convert)?;
-    let b = obj.as_slice().or(Err(Err::Error(LdapError::InvalidDN)))?;
+    let (i, b) = <&[u8]>::from_ber(i).map_err(Err::convert)?;
     // convert to UTF-8
     let s = std::str::from_utf8(b).or(Err(Err::Error(LdapError::InvalidDN)))?;
     Ok((i, LdapDN(Cow::Borrowed(s))))
@@ -67,8 +60,7 @@ fn parse_ldap_dn(i: &[u8]) -> Result<LdapDN> {
 //                               -- [RFC4514]
 fn parse_relative_ldap_dn(i: &[u8]) -> Result<RelativeLdapDN> {
     // read bytes
-    let (i, obj) = parse_ber_octetstring(i).map_err(Err::convert)?;
-    let b = obj.as_slice().or(Err(Err::Error(LdapError::InvalidDN)))?;
+    let (i, b) = <&[u8]>::from_ber(i).map_err(Err::convert)?;
     // convert to UTF-8
     let s = std::str::from_utf8(b).or(Err(Err::Error(LdapError::InvalidDN)))?;
     Ok((i, RelativeLdapDN(Cow::Borrowed(s))))
@@ -78,8 +70,7 @@ fn parse_relative_ldap_dn(i: &[u8]) -> Result<RelativeLdapDN> {
 //                          -- [RFC4512]
 fn parse_ldap_oid(i: &[u8]) -> Result<LdapOID> {
     // read bytes
-    let (i, obj) = parse_ber_octetstring(i).map_err(Err::convert)?;
-    let b = obj.as_slice().or(Err(Err::Error(LdapError::InvalidDN)))?;
+    let (i, b) = <&[u8]>::from_ber(i).map_err(Err::convert)?;
     // convert to UTF-8
     let s = std::str::from_utf8(b).or(Err(Err::Error(LdapError::InvalidDN)))?;
     Ok((i, LdapOID(Cow::Borrowed(s))))
@@ -361,7 +352,7 @@ fn parse_ldap_search_request(i: &[u8]) -> Result<SearchRequest> {
         let (i, deref_aliases) = map(parse_ldap_enum_as_u32, DerefAliases)(i)?;
         let (i, size_limit) = parse_ldap_int_as_u32(i)?;
         let (i, time_limit) = parse_ldap_int_as_u32(i)?;
-        let (i, types_only) = map_res(parse_ber_bool, |o| o.as_bool())(i).map_err(Err::convert)?;
+        let (i, types_only) = <bool>::from_ber(i).map_err(Err::convert)?;
         let (i, filter) = parse_ldap_filter(i)?;
         let (i, attributes) = parse_attribute_selection(i)?;
         let req = SearchRequest {
