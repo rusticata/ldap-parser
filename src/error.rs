@@ -1,6 +1,7 @@
 //! LDAP errors
 
-use der_parser::error::BerError;
+use asn1_rs::nom;
+use asn1_rs::Error;
 use nom::error::{ErrorKind, FromExternalError, ParseError};
 use nom::IResult;
 
@@ -35,7 +36,7 @@ pub enum LdapError {
     Unknown,
 
     #[error("BER error: {0}")]
-    Ber(#[from] BerError),
+    Ber(#[from] Error),
     #[error("nom error: {0:?}")]
     NomError(ErrorKind),
 }

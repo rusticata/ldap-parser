@@ -2,6 +2,7 @@
 
 use crate::error::Result;
 use crate::filter::*;
+use asn1_rs::FromBer;
 use rusticata_macros::newtype_enum;
 use std::borrow::Cow;
 
@@ -234,14 +235,14 @@ pub struct ExtendedRequest<'a> {
 #[derive(Debug, PartialEq)]
 pub struct ExtendedResponse<'a> {
     pub result: LdapResult<'a>,
-    pub request_name: Option<LdapOID<'a>>,
-    pub request_value: Option<Cow<'a, [u8]>>,
+    pub response_name: Option<LdapOID<'a>>,
+    pub response_value: Option<Cow<'a, [u8]>>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct IntermediateResponse<'a> {
-    pub request_name: Option<LdapOID<'a>>,
-    pub request_value: Option<Cow<'a, [u8]>>,
+    pub response_name: Option<LdapOID<'a>>,
+    pub response_value: Option<Cow<'a, [u8]>>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -323,6 +324,60 @@ pub struct Control<'a> {
 }
 
 /// An LDAP Message according to RFC4511
+///
+// LDAPMessage ::= SEQUENCE {
+//      messageID       MessageID,
+//      protocolOp      CHOICE {
+//           bindRequest           BindRequest,
+//           bindResponse          BindResponse,
+//           unbindRequest         UnbindRequest,
+//           searchRequest         SearchRequest,
+//           searchResEntry        SearchResultEntry,
+//           searchResDone         SearchResultDone,
+//           searchResRef          SearchResultReference,
+//           modifyRequest         ModifyRequest,
+//           modifyResponse        ModifyResponse,
+//           addRequest            AddRequest,
+//           addResponse           AddResponse,
+//           delRequest            DelRequest,
+//           delResponse           DelResponse,
+//           modDNRequest          ModifyDNRequest,
+//           modDNResponse         ModifyDNResponse,
+//           compareRequest        CompareRequest,
+//           compareResponse       CompareResponse,
+//           abandonRequest        AbandonRequest,
+//           extendedReq           ExtendedRequest,
+//           extendedResp          ExtendedResponse,
+//           ...,
+//           intermediateResponse  IntermediateResponse },
+//      controls       [0] Controls OPTIONAL }
+/// Parse a single LDAP message and return a structure borrowing fields from the input buffer
+///
+/// ```rust
+/// use ldap_parser::FromBer;
+/// use ldap_parser::ldap::{LdapMessage, MessageID, ProtocolOp, ProtocolOpTag};
+///
+/// static DATA: &[u8] = include_bytes!("../assets/message-search-request-01.bin");
+///
+/// # fn main() {
+/// let res = LdapMessage::from_ber(DATA);
+/// match res {
+///     Ok((rem, msg)) => {
+///         assert!(rem.is_empty());
+///         //
+///         assert_eq!(msg.message_id, MessageID(4));
+///         assert_eq!(msg.protocol_op.tag(), ProtocolOpTag::SearchRequest);
+///         match msg.protocol_op {
+///             ProtocolOp::SearchRequest(req) => {
+///                 assert_eq!(req.base_object.0, "dc=rccad,dc=net");
+///             },
+///             _ => panic!("Unexpected message type"),
+///         }
+///     },
+///     _ => panic!("LDAP parsing failed: {:?}", res),
+/// }
+/// # }
+/// ```
 #[derive(Debug, PartialEq)]
 pub struct LdapMessage<'a> {
     /// Message Identifier (32-bits unsigned integer)
@@ -343,9 +398,12 @@ pub struct LdapMessage<'a> {
 
 impl<'a> LdapMessage<'a> {
     /// Parse a single LDAP message and return a structure borrowing fields from the input buffer
-    ///
-    /// See [parse_ldap_message](../fn.parse_ldap_message.html) for examples.
-    pub fn parse(i: &[u8]) -> Result<LdapMessage> {
-        crate::parser::parse_ldap_message(i)
+    #[deprecated(
+        since = "0.3.0",
+        note = "Parsing functions are deprecated. Users should instead use the FromBer trait"
+    )]
+    #[inline]
+    pub fn parse(i: &'a [u8]) -> Result<LdapMessage> {
+        Self::from_ber(i)
     }
 }

@@ -2,8 +2,12 @@ use crate::error::*;
 use crate::filter::*;
 use crate::ldap::*;
 use crate::parser::*;
-use der_parser::ber::*;
-use nom::combinator::{complete, map, opt};
+use asn1_rs::nom;
+use asn1_rs::OptTaggedImplicit;
+use asn1_rs::{
+    Any, Class, FromBer, OptTaggedParser, ParseResult, Sequence, Set, Tag, TaggedParser,
+};
+use nom::combinator::{complete, map};
 use nom::multi::{many0, many1};
 use nom::Err;
 // use nom::dbg_dmp;
@@ -14,7 +18,7 @@ use std::borrow::Cow;
 //                         -- [RFC4512]
 #[inline]
 fn parse_ldap_attribute_description(i: &[u8]) -> Result<LdapString> {
-    parse_ldap_string(i)
+    LdapString::from_ber(i)
 }
 
 // AttributeValue ::= OCTET STRING
@@ -36,8 +40,10 @@ fn parse_ldap_attribute_value_assertion_content(content: &[u8]) -> Result<Attrib
     Ok((content, assertion))
 }
 
-pub(crate) fn parse_ldap_attribute_value_assertion(i: &[u8]) -> Result<AttributeValueAssertion> {
-    parse_ber_sequence_defined_g(|i, _| parse_ldap_attribute_value_assertion_content(i))(i)
+impl<'a> FromBer<'a, LdapError> for AttributeValueAssertion<'a> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+        Sequence::from_ber_and_then(bytes, parse_ldap_attribute_value_assertion_content)
+    }
 }
 
 // AssertionValue ::= OCTET STRING
@@ -57,41 +63,45 @@ fn parse_ldap_attribute_value(i: &[u8]) -> Result<AttributeValue> {
 // PartialAttribute ::= SEQUENCE {
 //      type       AttributeDescription,
 //      vals       SET OF value AttributeValue }
-pub(crate) fn parse_ldap_partial_attribute(i: &[u8]) -> Result<PartialAttribute> {
-    parse_ber_sequence_defined_g(|i, _| {
-        let (i, attr_type) = parse_ldap_string(i)?;
-        let (i, attr_vals) = parse_ber_set_defined_g(|inner, _| {
-            many0(complete(
-                // dbg_dmp(|d| parse_ldap_attribute_value(d), "parse_partial_attribute")
-                parse_ldap_attribute_value,
-            ))(inner)
-        })(i)?;
-        let partial_attr = PartialAttribute {
-            attr_type,
-            attr_vals,
-        };
-        Ok((i, partial_attr))
-    })(i)
+impl<'a> FromBer<'a, LdapError> for PartialAttribute<'a> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+        Sequence::from_ber_and_then(bytes, |i| {
+            let (i, attr_type) = LdapString::from_ber(i)?;
+            let (i, attr_vals) = Set::from_ber_and_then(i, |inner| {
+                many0(complete(
+                    // dbg_dmp(|d| parse_ldap_attribute_value(d), "parse_partial_attribute")
+                    parse_ldap_attribute_value,
+                ))(inner)
+            })?;
+            let partial_attr = PartialAttribute {
+                attr_type,
+                attr_vals,
+            };
+            Ok((i, partial_attr))
+        })
+    }
 }
 
 // Attribute ::= PartialAttribute(WITH COMPONENTS {
 //      ...,
 //      vals (SIZE(1..MAX))})
-pub(crate) fn parse_ldap_attribute(i: &[u8]) -> Result<Attribute> {
-    parse_ber_sequence_defined_g(|i, _| {
-        let (i, attr_type) = parse_ldap_string(i)?;
-        let (i, attr_vals) = parse_ber_set_defined_g(|inner, _| {
-            many1(complete(
-                // dbg_dmp(|d| parse_ldap_attribute_value(d), "parse_partial_attribute")
-                parse_ldap_attribute_value,
-            ))(inner)
-        })(i)?;
-        let attr = Attribute {
-            attr_type,
-            attr_vals,
-        };
-        Ok((i, attr))
-    })(i)
+impl<'a> FromBer<'a, LdapError> for Attribute<'a> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+        Sequence::from_ber_and_then(bytes, |i| {
+            let (i, attr_type) = LdapString::from_ber(i)?;
+            let (i, attr_vals) = Set::from_ber_and_then(i, |inner| {
+                many1(complete(
+                    // dbg_dmp(|d| parse_ldap_attribute_value(d), "parse_partial_attribute")
+                    parse_ldap_attribute_value,
+                ))(inner)
+            })?;
+            let attr = Attribute {
+                attr_type,
+                attr_vals,
+            };
+            Ok((i, attr))
+        })
+    }
 }
 
 // MatchingRuleId ::= LDAPString
@@ -108,73 +118,61 @@ pub(crate) fn parse_ldap_attribute(i: &[u8]) -> Result<Attribute> {
 //     approxMatch     [8] AttributeValueAssertion,
 //     extensibleMatch [9] MatchingRuleAssertion,
 //     ...  }
-pub(crate) fn parse_ldap_filter(i: &[u8]) -> Result<Filter> {
-    // read header of next element and look tag value
-    let (_, header) = ber_read_element_header(i).map_err(Err::convert)?;
-    // eprintln!("parse_ldap_filter: [{}] {:?}", header.tag.0, header);
-    match header.tag().0 {
-        0 => {
-            let (i, sub_filters) = parse_ber_tagged_implicit_g(0, |content, _hdr, _depth| {
-                many1(complete(parse_ldap_filter))(content)
-            })(i)?;
-            Ok((i, Filter::And(sub_filters)))
-        }
-        1 => {
-            let (i, sub_filters) = parse_ber_tagged_implicit_g(1, |content, _hdr, _depth| {
-                many1(complete(parse_ldap_filter))(content)
-            })(i)?;
-            Ok((i, Filter::Or(sub_filters)))
-        }
-        2 => {
-            let (i, sub_filter) =
-                parse_ber_tagged_implicit_g(2, |content, _hdr, _depth| parse_ldap_filter(content))(
-                    i,
-                )?;
-            Ok((i, Filter::Not(Box::new(sub_filter))))
-        }
-        3 => parse_ber_tagged_implicit_g(3, |content, _hdr, _depth| {
-            map(
+impl<'a> FromBer<'a, LdapError> for Filter<'a> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+        // read next element as ANY and look tag value
+        let (rem, any) = Any::from_ber(bytes).map_err(Err::convert)?;
+        // eprintln!("parse_ldap_filter: [{}] {:?}", header.tag.0, header);
+        // tag is context-specific IMPLICIT
+        any.class()
+            .assert_eq(Class::ContextSpecific)
+            .map_err(|e| Err::Error(e.into()))?;
+        let content = any.data;
+        let (_, filter) = match any.tag().0 {
+            0 => {
+                let (rem, sub_filters) = many1(complete(Filter::from_ber))(content)?;
+                Ok((rem, Filter::And(sub_filters)))
+            }
+            1 => {
+                let (rem, sub_filters) = many1(complete(Filter::from_ber))(content)?;
+                Ok((rem, Filter::Or(sub_filters)))
+            }
+            2 => map(Filter::from_ber, |f| Filter::Not(Box::new(f)))(content),
+            3 => map(
                 parse_ldap_attribute_value_assertion_content,
                 Filter::EqualityMatch,
-            )(content)
-        })(i),
-        4 => parse_ber_tagged_implicit_g(4, |content, _hdr, _depth| {
-            map(parse_ldap_substrings_filter_content, Filter::Substrings)(content)
-        })(i),
-        5 => parse_ber_tagged_implicit_g(5, |content, _hdr, _depth| {
-            map(
+            )(content),
+            4 => map(parse_ldap_substrings_filter_content, Filter::Substrings)(content),
+            5 => map(
                 parse_ldap_attribute_value_assertion_content,
                 Filter::GreaterOrEqual,
-            )(content)
-        })(i),
-        6 => parse_ber_tagged_implicit_g(6, |content, _hdr, _depth| {
-            map(
+            )(content),
+            6 => map(
                 parse_ldap_attribute_value_assertion_content,
                 Filter::LessOrEqual,
-            )(content)
-        })(i),
-        7 => parse_ber_tagged_implicit_g(7, |content, _hdr, _depth| {
-            let s = std::str::from_utf8(content).or(Err(Err::Error(LdapError::InvalidString)))?;
-            let s = LdapString(Cow::Borrowed(s));
-            Ok((i, Filter::Present(s)))
-        })(i),
-        8 => parse_ber_tagged_implicit_g(8, |content, _hdr, _depth| {
-            map(
+            )(content),
+            7 => {
+                let s =
+                    std::str::from_utf8(content).or(Err(Err::Error(LdapError::InvalidString)))?;
+                let s = LdapString(Cow::Borrowed(s));
+                Ok(([].as_ref(), Filter::Present(s)))
+            }
+            8 => map(
                 parse_ldap_attribute_value_assertion_content,
                 Filter::ApproxMatch,
-            )(content)
-        })(i),
-        9 => parse_ber_tagged_implicit_g(9, |content, _hdr, _depth| {
-            map(
+            )(content),
+            9 => map(
                 parse_ldap_matching_rule_assertion_content,
                 Filter::ExtensibleMatch,
-            )(content)
-        })(i),
-        _ => {
-            // print_hex_dump(i, 32);
-            // panic!("Filter id {} not yet implemented", header.tag.0);
-            Err(Err::Error(LdapError::InvalidFilterType))
-        }
+            )(content),
+            _ => {
+                // print_hex_dump(i, 32);
+                // panic!("Filter id {} not yet implemented", header.tag.0);
+                Err(Err::Error(LdapError::InvalidFilterType))
+            }
+        }?;
+        // use the remaining bytes from the outer object
+        Ok((rem, filter))
     }
 }
 
@@ -188,7 +186,7 @@ pub(crate) fn parse_ldap_filter(i: &[u8]) -> Result<Filter> {
 fn parse_ldap_substrings_filter_content(i: &[u8]) -> Result<SubstringFilter> {
     let (i, filter_type) = parse_ldap_attribute_description(i)?;
     let (i, substrings) =
-        parse_ber_sequence_defined_g(|d, _| many1(complete(parse_ldap_substring))(d))(i)?;
+        Sequence::from_ber_and_then(i, |inner| many1(complete(parse_ldap_substring))(inner))?;
     let filter = SubstringFilter {
         filter_type,
         substrings,
@@ -196,18 +194,16 @@ fn parse_ldap_substrings_filter_content(i: &[u8]) -> Result<SubstringFilter> {
     Ok((i, filter))
 }
 
-fn parse_ldap_substring(i: &[u8]) -> Result<Substring> {
-    parse_ber_container(|i, hdr| {
-        // in any case, this is an AssertionValue (== OCTET STRING)
-        let empty: &[u8] = &[];
-        let b = AssertionValue(Cow::Borrowed(i));
-        match hdr.tag().0 {
-            0 => Ok((empty, Substring::Initial(b))),
-            1 => Ok((empty, Substring::Any(b))),
-            2 => Ok((empty, Substring::Final(b))),
-            _ => Err(Err::Error(LdapError::InvalidSubstring)),
-        }
-    })(i)
+fn parse_ldap_substring(bytes: &[u8]) -> Result<Substring> {
+    let (rem, any) = Any::from_ber(bytes).map_err(Err::convert)?;
+    // in any case, this is an AssertionValue (== OCTET STRING)
+    let b = AssertionValue(Cow::Borrowed(any.data));
+    match any.tag().0 {
+        0 => Ok((rem, Substring::Initial(b))),
+        1 => Ok((rem, Substring::Any(b))),
+        2 => Ok((rem, Substring::Final(b))),
+        _ => Err(Err::Error(LdapError::InvalidSubstring)),
+    }
 }
 
 // MatchingRuleAssertion ::= SEQUENCE {
@@ -217,35 +213,26 @@ fn parse_ldap_substring(i: &[u8]) -> Result<Substring> {
 //     dnAttributes    [4] BOOLEAN DEFAULT FALSE }
 fn parse_ldap_matching_rule_assertion_content(i: &[u8]) -> Result<MatchingRuleAssertion> {
     // MatchingRuleId ::= LDAPString
-    let (i, matching_rule) = opt(complete(parse_ber_tagged_implicit_g(
-        1,
-        |content, _hdr, _depth| {
+    let (i, matching_rule) =
+        OptTaggedParser::new(Class::ContextSpecific, Tag(1)).parse_ber(i, |_, content| {
             let s = std::str::from_utf8(content).or(Err(Err::Error(LdapError::InvalidString)))?;
             let s = LdapString(Cow::Borrowed(s));
             Ok((&b""[..], s))
-        },
-    )))(i)?;
-    let (i, rule_type) = opt(complete(parse_ber_tagged_implicit_g(
-        2,
-        |content, _hdr, _depth| {
+        })?;
+    let (i, rule_type) =
+        OptTaggedParser::new(Class::ContextSpecific, Tag(2)).parse_ber(i, |_, content| {
             let s = std::str::from_utf8(content).or(Err(Err::Error(LdapError::InvalidString)))?;
             let s = AttributeDescription(Cow::Borrowed(s));
             Ok((&b""[..], s))
-        },
-    )))(i)?;
-    let (i, assertion_value) = parse_ber_tagged_implicit_g(3, |content, _hdr, _depth| {
-        let s = AssertionValue(Cow::Borrowed(content));
-        Ok((&b""[..], s))
-    })(i)?;
-    let (i, dn_attributes) = opt(complete(parse_ber_tagged_implicit_g(
-        4,
-        |content, hdr, depth| {
-            let (rem, obj_content) = parse_ber_content(Tag::Boolean)(content, &hdr, depth)?;
-            let b = obj_content.as_bool()?;
-            Ok((rem, b))
-        },
-    )))(i)
-    .map_err(Err::convert)?;
+        })?;
+    let (i, assertion_value) =
+        TaggedParser::from_ber_and_then(Class::ContextSpecific, 3, i, |content| {
+            let s = AssertionValue(Cow::Borrowed(content));
+            Ok((&b""[..], s))
+        })?;
+    let (i, dn_attributes) =
+        OptTaggedImplicit::<bool, asn1_rs::Error, 4>::from_ber(i).map_err(Err::convert)?;
+    let dn_attributes = dn_attributes.map(|t| t.into_inner());
     let assertion = MatchingRuleAssertion {
         matching_rule,
         rule_type,

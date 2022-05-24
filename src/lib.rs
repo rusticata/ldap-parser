@@ -22,13 +22,13 @@
 //! Parsing an LDAP message (in BER format):
 //!
 //! ```rust
-//! use ldap_parser::parse_ldap_message;
-//! use ldap_parser::ldap::{MessageID, ProtocolOp, ProtocolOpTag};
+//! use ldap_parser::FromBer;
+//! use ldap_parser::ldap::{LdapMessage, MessageID, ProtocolOp, ProtocolOpTag};
 //!
 //! static DATA: &[u8] = include_bytes!("../assets/message-search-request-01.bin");
 //!
 //! # fn main() {
-//! let res = parse_ldap_message(DATA);
+//! let res = LdapMessage::from_ber(DATA);
 //! match res {
 //!     Ok((rem, msg)) => {
 //!         assert!(rem.is_empty());
@@ -74,6 +74,6 @@ mod parser;
 
 pub use parser::*;
 
-pub use der_parser;
-pub use nom;
-pub use nom::{Err, IResult};
+pub use asn1_rs;
+pub use asn1_rs::nom::{Err, IResult};
+pub use asn1_rs::FromBer;
