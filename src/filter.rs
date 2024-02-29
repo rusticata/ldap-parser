@@ -3,7 +3,7 @@
 use crate::ldap::LdapString;
 use std::borrow::Cow;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Filter<'a> {
     And(Vec<Filter<'a>>),
     Or(Vec<Filter<'a>>),
@@ -17,28 +17,28 @@ pub enum Filter<'a> {
     ExtensibleMatch(MatchingRuleAssertion<'a>),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PartialAttribute<'a> {
     pub attr_type: LdapString<'a>,
     pub attr_vals: Vec<AttributeValue<'a>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Attribute<'a> {
     pub attr_type: LdapString<'a>,
     pub attr_vals: Vec<AttributeValue<'a>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AttributeValueAssertion<'a> {
     pub attribute_desc: LdapString<'a>,
     pub assertion_value: &'a [u8],
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AttributeDescription<'a>(pub Cow<'a, str>);
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MatchingRuleAssertion<'a> {
     pub matching_rule: Option<LdapString<'a>>,
     pub rule_type: Option<AttributeDescription<'a>>,
@@ -46,24 +46,24 @@ pub struct MatchingRuleAssertion<'a> {
     pub dn_attributes: Option<bool>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MatchingRuleId<'a>(pub Cow<'a, str>);
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubstringFilter<'a> {
     pub filter_type: LdapString<'a>,
     pub substrings: Vec<Substring<'a>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Substring<'a> {
     Initial(AssertionValue<'a>),
     Any(AssertionValue<'a>),
     Final(AssertionValue<'a>),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AssertionValue<'a>(pub Cow<'a, [u8]>);
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AttributeValue<'a>(pub Cow<'a, [u8]>);

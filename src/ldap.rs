@@ -126,19 +126,19 @@ impl debug Operation {
 }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LdapString<'a>(pub Cow<'a, str>);
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LdapDN<'a>(pub Cow<'a, str>);
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RelativeLdapDN<'a>(pub Cow<'a, str>);
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LdapOID<'a>(pub Cow<'a, str>);
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LdapResult<'a> {
     pub result_code: ResultCode,
     pub matched_dn: LdapDN<'a>,
@@ -146,32 +146,32 @@ pub struct LdapResult<'a> {
     // referral           [3] Referral OPTIONAL
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BindRequest<'a> {
     pub version: u8,
     pub name: LdapDN<'a>,
     pub authentication: AuthenticationChoice<'a>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SaslCredentials<'a> {
     pub mechanism: LdapString<'a>,
     pub credentials: Option<Cow<'a, [u8]>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AuthenticationChoice<'a> {
     Simple(Cow<'a, [u8]>),
     Sasl(SaslCredentials<'a>),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BindResponse<'a> {
     pub result: LdapResult<'a>,
     pub server_sasl_creds: Option<Cow<'a, [u8]>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SearchRequest<'a> {
     pub base_object: LdapDN<'a>,
     pub scope: SearchScope,
@@ -183,36 +183,36 @@ pub struct SearchRequest<'a> {
     pub attributes: Vec<LdapString<'a>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SearchResultEntry<'a> {
     pub object_name: LdapDN<'a>,
     pub attributes: Vec<PartialAttribute<'a>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ModifyRequest<'a> {
     pub object: LdapDN<'a>,
     pub changes: Vec<Change<'a>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ModifyResponse<'a> {
     pub result: LdapResult<'a>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Change<'a> {
     pub operation: Operation,
     pub modification: PartialAttribute<'a>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AddRequest<'a> {
     pub entry: LdapDN<'a>,
     pub attributes: Vec<Attribute<'a>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ModDnRequest<'a> {
     pub entry: LdapDN<'a>,
     pub newrdn: RelativeLdapDN<'a>,
@@ -220,32 +220,32 @@ pub struct ModDnRequest<'a> {
     pub newsuperior: Option<LdapDN<'a>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CompareRequest<'a> {
     pub entry: LdapDN<'a>,
     pub ava: AttributeValueAssertion<'a>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExtendedRequest<'a> {
     pub request_name: LdapOID<'a>,
     pub request_value: Option<Cow<'a, [u8]>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExtendedResponse<'a> {
     pub result: LdapResult<'a>,
     pub response_name: Option<LdapOID<'a>>,
     pub response_value: Option<Cow<'a, [u8]>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IntermediateResponse<'a> {
     pub response_name: Option<LdapOID<'a>>,
     pub response_value: Option<Cow<'a, [u8]>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ProtocolOp<'a> {
     BindRequest(BindRequest<'a>),
     BindResponse(BindResponse<'a>),
@@ -316,7 +316,7 @@ impl<'a> ProtocolOp<'a> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Control<'a> {
     pub control_type: LdapOID<'a>,
     pub criticality: bool,
@@ -378,7 +378,7 @@ pub struct Control<'a> {
 /// }
 /// # }
 /// ```
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LdapMessage<'a> {
     /// Message Identifier (32-bits unsigned integer)
     ///
