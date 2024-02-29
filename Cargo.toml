@@ -28,9 +28,9 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-asn1-rs = "0.5"
+asn1-rs = "0.6"
 rusticata-macros = "4.0"
 thiserror = "1.0"
 
 [dev-dependencies]
-hex-literal = "0.3"
+hex-literal = "0.4"
