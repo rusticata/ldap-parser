@@ -8,6 +8,14 @@
 
 ### Thanks
 
+## 0.4.0
+
+### Changed/Fixed
+
+- Update to asn1-rs 0.6.0
+- Set MSRV to 1.63
+- Switch to asn1-rs
+
 ## 0.3.0
 
 ### Changed/Fixed
