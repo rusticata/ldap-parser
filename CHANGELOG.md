@@ -8,6 +8,13 @@
 
 ### Thanks
 
+## 0.4.1
+
+### Changed/Fixed
+
+- Fix incorrect parsing of AbandonRequest operation (#6)
+- Bump thiserror from 1.0 to 2.0
+
 ## 0.4.0
 
 ### Changed/Fixed
