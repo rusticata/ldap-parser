@@ -7,8 +7,8 @@ use crate::filter::*;
 use crate::ldap::*;
 use asn1_rs::nom;
 use asn1_rs::{
-    Class, Enumerated, FromBer, Header, OptTaggedParser, ParseResult, Sequence, Tag,
-    TaggedImplicit, TaggedParser,
+    Class, Enumerated, FromBer, Header, Implicit, OptTaggedParser, ParseResult, Sequence, Tag,
+    TaggedParser, TaggedValue,
 };
 use nom::bytes::streaming::take;
 use nom::combinator::{complete, map, opt, verify};
@@ -532,8 +532,8 @@ fn parse_ldap_compare_response(bytes: &[u8]) -> Result<LdapResult> {
 
 // AbandonRequest ::= [APPLICATION 16] MessageID
 fn parse_ldap_abandon_request(bytes: &[u8]) -> Result<MessageID> {
-    let (rem, id) =
-        TaggedImplicit::<u32, asn1_rs::Error, 16>::from_ber(bytes).map_err(Err::convert)?;
+    let (rem, id) = TaggedValue::<u32, _, Implicit, { Class::APPLICATION }, 16>::from_ber(bytes)
+        .map_err(Err::convert)?;
     Ok((rem, MessageID(id.into_inner())))
 }
 
@@ -1015,5 +1015,18 @@ mod tests {
         //
         assert!(rem.is_empty());
         assert_eq!(resp.result_code, ResultCode::CompareTrue);
+    }
+
+    #[test]
+    fn test_parse_abandon_request() {
+        const DATA: &[u8] = &[0x30, 0x06, 0x02, 0x01, 0x06, 0x50, 0x01, 0x05];
+
+        let (rem, msg) = LdapMessage::from_ber(DATA).expect("parsing failed");
+        assert!(rem.is_empty());
+        assert_eq!(msg.message_id, MessageID(6));
+        assert!(matches!(
+            msg.protocol_op,
+            ProtocolOp::AbandonRequest(MessageID(5))
+        ))
     }
 }
