@@ -21,7 +21,7 @@ use std::borrow::Cow;
 
 // MessageID ::= INTEGER (0 ..  maxInt)
 impl<'a> FromBer<'a, LdapError> for MessageID {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         map(u32::from_ber, MessageID)(bytes).map_err(Err::convert)
     }
 }
@@ -29,7 +29,7 @@ impl<'a> FromBer<'a, LdapError> for MessageID {
 // LDAPString ::= OCTET STRING -- UTF-8 encoded,
 //                             -- [ISO10646] characters
 impl<'a> FromBer<'a, LdapError> for LdapString<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         let (i, b) = parse_ldap_octet_string_as_slice(bytes)?;
         // convert to UTF-8
         let s = std::str::from_utf8(b).or(Err(Err::Error(LdapError::InvalidString)))?;
@@ -56,7 +56,7 @@ fn parse_ldap_enum_as_u32(i: &[u8]) -> Result<u32> {
 // LDAPDN ::= LDAPString -- Constrained to <distinguishedName>
 //                       -- [RFC4514]
 impl<'a> FromBer<'a, LdapError> for LdapDN<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         // read bytes
         let (i, b) = <&[u8]>::from_ber(bytes).map_err(Err::convert)?;
         // convert to UTF-8
@@ -68,7 +68,7 @@ impl<'a> FromBer<'a, LdapError> for LdapDN<'a> {
 // RelativeLDAPDN ::= LDAPString -- Constrained to <name-component>
 //                               -- [RFC4514]
 impl<'a> FromBer<'a, LdapError> for RelativeLdapDN<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         // read bytes
         let (i, b) = <&[u8]>::from_ber(bytes).map_err(Err::convert)?;
         // convert to UTF-8
@@ -80,7 +80,7 @@ impl<'a> FromBer<'a, LdapError> for RelativeLdapDN<'a> {
 // LDAPOID ::= OCTET STRING -- Constrained to <numericoid>
 //                          -- [RFC4512]
 impl<'a> FromBer<'a, LdapError> for LdapOID<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         // read bytes
         let (i, b) = <&[u8]>::from_ber(bytes).map_err(Err::convert)?;
         // convert to UTF-8
@@ -228,7 +228,7 @@ fn parse_ldap_result_content(i: &[u8]) -> Result<LdapResult> {
 /// # }
 /// ```
 impl<'a> FromBer<'a, LdapError> for LdapMessage<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         Sequence::from_ber_and_then(bytes, |i| {
             let (i, message_id) = MessageID::from_ber(i)?;
             // read header of next element and look tag value
@@ -301,7 +301,7 @@ pub fn parse_ldap_messages(i: &[u8]) -> Result<Vec<LdapMessage>> {
 //      name                    LDAPDN,
 //      authentication          AuthenticationChoice }
 impl<'a> FromBer<'a, LdapError> for BindRequest<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         TaggedParser::from_ber_and_then(Class::Application, 0, bytes, |i| {
             // Sequence::from_ber_and_then(bytes, |i| {
             let (i, version) = verify(u8::from_ber, |&n| n < 128)(i).map_err(Err::convert)?;
@@ -322,7 +322,7 @@ impl<'a> FromBer<'a, LdapError> for BindRequest<'a> {
 //      COMPONENTS OF LDAPResult,
 //      serverSaslCreds    [7] OCTET STRING OPTIONAL }
 impl<'a> FromBer<'a, LdapError> for BindResponse<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         TaggedParser::from_ber_and_then(Class::Application, 1, bytes, |i| {
             let (i, result) = parse_ldap_result_content(i)?;
             let (i, server_sasl_creds) = OptTaggedParser::new(Class::ContextSpecific, Tag(7))
@@ -369,7 +369,7 @@ fn parse_ldap_unbind_request(bytes: &[u8]) -> Result<ProtocolOp> {
 //      filter          Filter,
 //      attributes      AttributeSelection }
 impl<'a> FromBer<'a, LdapError> for SearchRequest<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         TaggedParser::from_ber_and_then(Class::Application, 3, bytes, |i| {
             let (i, base_object) = LdapDN::from_ber(i)?;
             let (i, scope) = map(parse_ldap_enum_as_u32, SearchScope)(i)?;
@@ -398,7 +398,7 @@ impl<'a> FromBer<'a, LdapError> for SearchRequest<'a> {
 //     objectName      LDAPDN,
 //     attributes      PartialAttributeList }
 impl<'a> FromBer<'a, LdapError> for SearchResultEntry<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         TaggedParser::from_ber_and_then(Class::Application, 4, bytes, |i| {
             let (i, object_name) = LdapDN::from_ber(i)?;
             let (i, attributes) = parse_partial_attribute_list(i)?;
@@ -426,7 +426,7 @@ fn parse_ldap_search_result_done(bytes: &[u8]) -> Result<LdapResult> {
 //               ...  },
 //          modification    PartialAttribute } }
 impl<'a> FromBer<'a, LdapError> for ModifyRequest<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         TaggedParser::from_ber_and_then(Class::Application, 6, bytes, |i| {
             let (i, object) = LdapDN::from_ber(i)?;
             let (i, changes) = Sequence::from_ber_and_then(i, many1(complete(Change::from_ber)))?;
@@ -449,7 +449,7 @@ fn parse_ldap_modify_response(bytes: &[u8]) -> Result<ModifyResponse> {
 //     entry           LDAPDN,
 //     attributes      AttributeList }
 impl<'a> FromBer<'a, LdapError> for AddRequest<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         TaggedParser::from_ber_and_then(Class::Application, 8, bytes, |i| {
             let (i, entry) = LdapDN::from_ber(i)?;
             let (i, attributes) = parse_attribute_list(i)?;
@@ -484,7 +484,7 @@ fn parse_ldap_del_response(bytes: &[u8]) -> Result<LdapResult> {
 //     deleteoldrdn    BOOLEAN,
 //     newSuperior     [0] LDAPDN OPTIONAL }
 impl<'a> FromBer<'a, LdapError> for ModDnRequest<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         TaggedParser::from_ber_and_then(Class::Application, 12, bytes, |i| {
             let (i, entry) = LdapDN::from_ber(i)?;
             let (i, newrdn) = RelativeLdapDN::from_ber(i)?;
@@ -515,7 +515,7 @@ fn parse_ldap_moddn_response(bytes: &[u8]) -> Result<LdapResult> {
 //     entry           LDAPDN,
 //     ava             AttributeValueAssertion }
 impl<'a> FromBer<'a, LdapError> for CompareRequest<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         TaggedParser::from_ber_and_then(Class::Application, 14, bytes, |i| {
             let (i, entry) = LdapDN::from_ber(i)?;
             let (i, ava) = AttributeValueAssertion::from_ber(i)?;
@@ -552,7 +552,7 @@ fn parse_ldap_search_result_ref(bytes: &[u8]) -> Result<Vec<LdapString>> {
 //     requestName      [0] LDAPOID,
 //     requestValue     [1] OCTET STRING OPTIONAL }
 impl<'a> FromBer<'a, LdapError> for ExtendedRequest<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         TaggedParser::from_ber_and_then(Class::Application, 23, bytes, |i| {
             let (i, request_name) =
                 TaggedParser::from_ber_and_then(Class::ContextSpecific, 0, i, |i| {
@@ -576,7 +576,7 @@ impl<'a> FromBer<'a, LdapError> for ExtendedRequest<'a> {
 //     responseName     [10] LDAPOID OPTIONAL,
 //     responseValue    [11] OCTET STRING OPTIONAL }
 impl<'a> FromBer<'a, LdapError> for ExtendedResponse<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         TaggedParser::from_ber_and_then(Class::Application, 24, bytes, |i| {
             let (i, result) = parse_ldap_result_content(i)?;
             let (i, response_name) = OptTaggedParser::new(Class::ContextSpecific, Tag(10))
@@ -601,7 +601,7 @@ impl<'a> FromBer<'a, LdapError> for ExtendedResponse<'a> {
 //      responseName     [0] LDAPOID OPTIONAL,
 //      responseValue    [1] OCTET STRING OPTIONAL }
 impl<'a> FromBer<'a, LdapError> for IntermediateResponse<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         TaggedParser::from_ber_and_then(Class::Application, 25, bytes, |i| {
             let (i, response_name) = OptTaggedParser::new(Class::ContextSpecific, Tag(0))
                 .parse_ber(i, |_, i| {
@@ -626,7 +626,7 @@ impl<'a> FromBer<'a, LdapError> for IntermediateResponse<'a> {
 //      sasl                    [3] SaslCredentials,
 //      ...  }
 impl<'a> FromBer<'a, LdapError> for AuthenticationChoice<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         let (rem, header) = Header::from_ber(bytes).map_err(Err::convert)?;
         match header.tag().0 {
             0 => {
@@ -699,7 +699,7 @@ fn parse_attribute_list(bytes: &[u8]) -> Result<Vec<Attribute>> {
 //               ...  },
 //          modification    PartialAttribute }
 impl<'a> FromBer<'a, LdapError> for Change<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         Sequence::from_ber_and_then(bytes, |i| {
             let (i, operation) = map(parse_ldap_enum_as_u32, Operation)(i)?;
             let (i, modification) = PartialAttribute::from_ber(i)?;
@@ -717,7 +717,7 @@ impl<'a> FromBer<'a, LdapError> for Change<'a> {
 //     criticality             BOOLEAN DEFAULT FALSE,
 //     controlValue            OCTET STRING OPTIONAL }
 impl<'a> FromBer<'a, LdapError> for Control<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         Sequence::from_ber_and_then(bytes, |i| {
             let (i, control_type) = LdapOID::from_ber(i)?;
             let (i, maybe_critical) = <Option<bool>>::from_ber(i).map_err(Err::convert)?;

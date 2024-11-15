@@ -41,7 +41,7 @@ fn parse_ldap_attribute_value_assertion_content(content: &[u8]) -> Result<Attrib
 }
 
 impl<'a> FromBer<'a, LdapError> for AttributeValueAssertion<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         Sequence::from_ber_and_then(bytes, parse_ldap_attribute_value_assertion_content)
     }
 }
@@ -64,7 +64,7 @@ fn parse_ldap_attribute_value(i: &[u8]) -> Result<AttributeValue> {
 //      type       AttributeDescription,
 //      vals       SET OF value AttributeValue }
 impl<'a> FromBer<'a, LdapError> for PartialAttribute<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         Sequence::from_ber_and_then(bytes, |i| {
             let (i, attr_type) = LdapString::from_ber(i)?;
             let (i, attr_vals) = Set::from_ber_and_then(i, |inner| {
@@ -86,7 +86,7 @@ impl<'a> FromBer<'a, LdapError> for PartialAttribute<'a> {
 //      ...,
 //      vals (SIZE(1..MAX))})
 impl<'a> FromBer<'a, LdapError> for Attribute<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         Sequence::from_ber_and_then(bytes, |i| {
             let (i, attr_type) = LdapString::from_ber(i)?;
             let (i, attr_vals) = Set::from_ber_and_then(i, |inner| {
@@ -119,7 +119,7 @@ impl<'a> FromBer<'a, LdapError> for Attribute<'a> {
 //     extensibleMatch [9] MatchingRuleAssertion,
 //     ...  }
 impl<'a> FromBer<'a, LdapError> for Filter<'a> {
-    fn from_ber(bytes: &'a [u8]) -> ParseResult<Self, LdapError> {
+    fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         // read next element as ANY and look tag value
         let (rem, any) = Any::from_ber(bytes).map_err(Err::convert)?;
         // eprintln!("parse_ldap_filter: [{}] {:?}", header.tag.0, header);

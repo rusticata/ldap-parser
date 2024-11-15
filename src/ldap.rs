@@ -271,7 +271,7 @@ pub enum ProtocolOp<'a> {
     IntermediateResponse(IntermediateResponse<'a>),
 }
 
-impl<'a> ProtocolOp<'a> {
+impl ProtocolOp<'_> {
     /// Get tag number associated with the operation
     pub fn tag(&self) -> ProtocolOpTag {
         let op = match self {
@@ -403,7 +403,7 @@ impl<'a> LdapMessage<'a> {
         note = "Parsing functions are deprecated. Users should instead use the FromBer trait"
     )]
     #[inline]
-    pub fn parse(i: &'a [u8]) -> Result<LdapMessage> {
+    pub fn parse(i: &'a [u8]) -> Result<'a, LdapMessage<'a>> {
         Self::from_ber(i)
     }
 }
