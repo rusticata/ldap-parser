@@ -8,6 +8,13 @@
 
 ### Thanks
 
+## 0.5.0
+
+### Changed/Fixed
+
+- Update asn1-rs requirement from 0.6 to 0.7
+- Implement ToStatic for all objects
+
 ## 0.4.1
 
 ### Changed/Fixed
