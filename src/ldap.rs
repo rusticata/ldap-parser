@@ -2,11 +2,11 @@
 
 use crate::error::Result;
 use crate::filter::*;
-use asn1_rs::FromBer;
+use asn1_rs::{FromBer, ToStatic};
 use rusticata_macros::newtype_enum;
 use std::borrow::Cow;
 
-#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, ToStatic)]
 pub struct ProtocolOpTag(pub u32);
 
 newtype_enum! {
@@ -35,7 +35,7 @@ impl display ProtocolOpTag {
 }
 }
 
-#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, ToStatic)]
 pub struct ResultCode(pub u32);
 
 newtype_enum! {
@@ -89,10 +89,10 @@ impl debug ResultCode {
 }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, ToStatic)]
 pub struct MessageID(pub u32);
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, ToStatic)]
 pub struct SearchScope(pub u32);
 
 newtype_enum! {
@@ -103,7 +103,7 @@ impl debug SearchScope {
 }
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, ToStatic)]
 pub struct DerefAliases(pub u32);
 
 newtype_enum! {
@@ -115,7 +115,7 @@ impl debug DerefAliases {
 }
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, ToStatic)]
 pub struct Operation(pub u32);
 
 newtype_enum! {
@@ -126,19 +126,19 @@ impl debug Operation {
 }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct LdapString<'a>(pub Cow<'a, str>);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct LdapDN<'a>(pub Cow<'a, str>);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct RelativeLdapDN<'a>(pub Cow<'a, str>);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct LdapOID<'a>(pub Cow<'a, str>);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct LdapResult<'a> {
     pub result_code: ResultCode,
     pub matched_dn: LdapDN<'a>,
@@ -146,32 +146,32 @@ pub struct LdapResult<'a> {
     // referral           [3] Referral OPTIONAL
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct BindRequest<'a> {
     pub version: u8,
     pub name: LdapDN<'a>,
     pub authentication: AuthenticationChoice<'a>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct SaslCredentials<'a> {
     pub mechanism: LdapString<'a>,
     pub credentials: Option<Cow<'a, [u8]>>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub enum AuthenticationChoice<'a> {
     Simple(Cow<'a, [u8]>),
     Sasl(SaslCredentials<'a>),
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct BindResponse<'a> {
     pub result: LdapResult<'a>,
     pub server_sasl_creds: Option<Cow<'a, [u8]>>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct SearchRequest<'a> {
     pub base_object: LdapDN<'a>,
     pub scope: SearchScope,
@@ -183,36 +183,36 @@ pub struct SearchRequest<'a> {
     pub attributes: Vec<LdapString<'a>>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct SearchResultEntry<'a> {
     pub object_name: LdapDN<'a>,
     pub attributes: Vec<PartialAttribute<'a>>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct ModifyRequest<'a> {
     pub object: LdapDN<'a>,
     pub changes: Vec<Change<'a>>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct ModifyResponse<'a> {
     pub result: LdapResult<'a>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct Change<'a> {
     pub operation: Operation,
     pub modification: PartialAttribute<'a>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct AddRequest<'a> {
     pub entry: LdapDN<'a>,
     pub attributes: Vec<Attribute<'a>>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct ModDnRequest<'a> {
     pub entry: LdapDN<'a>,
     pub newrdn: RelativeLdapDN<'a>,
@@ -220,32 +220,32 @@ pub struct ModDnRequest<'a> {
     pub newsuperior: Option<LdapDN<'a>>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct CompareRequest<'a> {
     pub entry: LdapDN<'a>,
     pub ava: AttributeValueAssertion<'a>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct ExtendedRequest<'a> {
     pub request_name: LdapOID<'a>,
     pub request_value: Option<Cow<'a, [u8]>>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct ExtendedResponse<'a> {
     pub result: LdapResult<'a>,
     pub response_name: Option<LdapOID<'a>>,
     pub response_value: Option<Cow<'a, [u8]>>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct IntermediateResponse<'a> {
     pub response_name: Option<LdapOID<'a>>,
     pub response_value: Option<Cow<'a, [u8]>>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub enum ProtocolOp<'a> {
     BindRequest(BindRequest<'a>),
     BindResponse(BindResponse<'a>),
@@ -316,7 +316,7 @@ impl ProtocolOp<'_> {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct Control<'a> {
     pub control_type: LdapOID<'a>,
     pub criticality: bool,
@@ -378,7 +378,7 @@ pub struct Control<'a> {
 /// }
 /// # }
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToStatic)]
 pub struct LdapMessage<'a> {
     /// Message Identifier (32-bits unsigned integer)
     ///
@@ -405,5 +405,29 @@ impl<'a> LdapMessage<'a> {
     #[inline]
     pub fn parse(i: &'a [u8]) -> Result<'a, LdapMessage<'a>> {
         Self::from_ber(i)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct LDAPTransaction {
+        s: LdapString<'static>,
+    }
+
+    #[test]
+    fn test_transaction_lifetime() {
+        let s = "test";
+        let ldap_string = LdapString(s.into());
+        assert!(matches!(ldap_string.0, Cow::Borrowed(_)));
+
+        let ldap_string_owned = ldap_string.to_static();
+        assert!(matches!(ldap_string_owned.0, Cow::Owned(_)));
+
+        let tx = LDAPTransaction {
+            s: ldap_string_owned,
+        };
+        assert!(matches!(tx.s.0, Cow::Owned(_)));
     }
 }
