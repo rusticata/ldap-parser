@@ -39,7 +39,6 @@ jobs:
     strategy:
       matrix:
         features:
-          - --features=default
           - --all-features
     steps:
       - uses: actions/checkout@v4
