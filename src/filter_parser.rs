@@ -35,7 +35,7 @@ fn parse_ldap_attribute_value_assertion_content(content: &[u8]) -> Result<Attrib
     let (content, assertion_value) = parse_ldap_assertion_value(content)?;
     let assertion = AttributeValueAssertion {
         attribute_desc,
-        assertion_value,
+        assertion_value: assertion_value.into(),
     };
     Ok((content, assertion))
 }
