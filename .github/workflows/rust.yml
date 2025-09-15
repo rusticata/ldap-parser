@@ -14,20 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.head_ref }}
       # tools used in pre-commit hooks
       - id: cargo-rdme
         uses: rusticata/ci-action-rdme@v1
       # /tools
-      - name: Install prek
-        uses: ./.github/actions/install-prek
-        id: prek
-        with:
-          skip-prek-hooks: false
-          save-cache: true
-      - name: Run prek
-        run: prek --all-files --verbose --hook-stage manual
+      - id: prek
+        uses: rusticata/ci-action-prek@master
 
   check:
     name: Check
