@@ -1,12 +1,11 @@
-![Maintenance](https://img.shields.io/badge/maintenance-activly--developed-brightgreen.svg)
+<!-- cargo-sync-readme start -->
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE-MIT)
 [![Apache License 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE-APACHE)
 [![docs.rs](https://docs.rs/ldap-parser/badge.svg)](https://docs.rs/ldap-parser)
 [![crates.io](https://img.shields.io/crates/v/ldap-parser.svg)](https://crates.io/crates/ldap-parser)
 [![Github CI](https://github.com/rusticata/ldap-parser/workflows/Continuous%20integration/badge.svg)](https://github.com/rusticata/ldap-parser/actions)
 [![Minimum rustc version](https://img.shields.io/badge/rustc-1.44.0+-lightgray.svg)](#rust-version-requirements)
-
-<!-- cargo-rdme start -->
 
 # LDAP Parser
 
@@ -25,12 +24,12 @@ and is part of the [Rusticata](https://github.com/rusticata) project.
 Parsing an LDAP message (in BER format):
 
 ```rust
-use ldap_parser::FromBer;
-use ldap_parser::ldap::{LdapMessage, MessageID, ProtocolOp, ProtocolOpTag};
+use ldap_parser::parse_ldap_message;
+use ldap_parser::ldap::{MessageID, ProtocolOp, ProtocolOpTag};
 
 static DATA: &[u8] = include_bytes!("../assets/message-search-request-01.bin");
 
-let res = LdapMessage::from_ber(DATA);
+let res = parse_ldap_message(DATA);
 match res {
     Ok((rem, msg)) => {
         assert!(rem.is_empty());
@@ -49,8 +48,7 @@ match res {
 ```
 
 [RFC4511]: https://tools.ietf.org/html/rfc4511
-
-<!-- cargo-rdme end -->
+<!-- cargo-sync-readme end -->
 
 ## Changes
 

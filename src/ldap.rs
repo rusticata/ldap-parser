@@ -301,7 +301,7 @@ impl ProtocolOp<'_> {
     }
 
     /// Get the LDAP result, if present
-    pub fn result(&self) -> Option<&LdapResult<'_>> {
+    pub fn result(&self) -> Option<&LdapResult> {
         match self {
             ProtocolOp::BindResponse(r) => Some(&r.result),
             ProtocolOp::ModifyResponse(r) => Some(&r.result),

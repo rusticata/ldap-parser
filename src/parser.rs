@@ -38,17 +38,17 @@ impl<'a> FromBer<'a, LdapError> for LdapString<'a> {
 }
 
 #[inline]
-pub(crate) fn parse_ldap_octet_string_as_slice(i: &[u8]) -> Result<'_, &[u8]> {
+pub(crate) fn parse_ldap_octet_string_as_slice(i: &[u8]) -> Result<&[u8]> {
     <&[u8]>::from_ber(i).map_err(Err::convert)
 }
 
 #[inline]
-fn parse_ldap_int_as_u32(i: &[u8]) -> Result<'_, u32> {
+fn parse_ldap_int_as_u32(i: &[u8]) -> Result<u32> {
     <u32>::from_ber(i).map_err(Err::convert)
 }
 
 #[inline]
-fn parse_ldap_enum_as_u32(i: &[u8]) -> Result<'_, u32> {
+fn parse_ldap_enum_as_u32(i: &[u8]) -> Result<u32> {
     let (i, obj) = Enumerated::from_ber(i).map_err(Err::convert)?;
     Ok((i, obj.0))
 }
@@ -92,7 +92,7 @@ impl<'a> FromBer<'a, LdapError> for LdapOID<'a> {
 // URI ::= LDAPString     -- limited to characters permitted in
 //                                -- URIs
 #[inline]
-fn parse_ldap_uri(i: &[u8]) -> Result<'_, LdapString<'_>> {
+fn parse_ldap_uri(i: &[u8]) -> Result<LdapString> {
     LdapString::from_ber(i)
 }
 
@@ -161,7 +161,7 @@ fn parse_ldap_uri(i: &[u8]) -> Result<'_, LdapString<'_>> {
 //      matchedDN          LDAPDN,
 //      diagnosticMessage  LDAPString,
 //      referral           [3] Referral OPTIONAL }
-fn parse_ldap_result_content(i: &[u8]) -> Result<'_, LdapResult<'_>> {
+fn parse_ldap_result_content(i: &[u8]) -> Result<LdapResult> {
     let (i, result_code) = map(parse_ldap_enum_as_u32, ResultCode)(i)?;
     let (i, matched_dn) = LdapDN::from_ber(i)?;
     let (i, diagnostic_message) = LdapString::from_ber(i)?;
@@ -284,13 +284,13 @@ impl<'a> FromBer<'a, LdapError> for LdapMessage<'a> {
     note = "Parsing functions are deprecated. Users should instead use the FromBer trait"
 )]
 #[inline]
-pub fn parse_ldap_message(i: &[u8]) -> Result<'_, LdapMessage<'_>> {
+pub fn parse_ldap_message(i: &[u8]) -> Result<LdapMessage> {
     LdapMessage::from_ber(i)
 }
 
 /// Parse a list of LDAP messages and return a structure borrowing fields from the input buffer
 // Note: we don't use the trait because Vec<_>::from_ber forces the Error type
-pub fn parse_ldap_messages(i: &[u8]) -> Result<'_, Vec<LdapMessage<'_>>> {
+pub fn parse_ldap_messages(i: &[u8]) -> Result<Vec<LdapMessage>> {
     // println!("parse_ldap_message: len={}", i.len());
     // print_hex_dump(i, 32);
     many1(complete(LdapMessage::from_ber))(i)
@@ -341,7 +341,7 @@ impl<'a> FromBer<'a, LdapError> for BindResponse<'a> {
 }
 
 // UnbindRequest ::= [APPLICATION 2] NULL
-fn parse_ldap_unbind_request(bytes: &[u8]) -> Result<'_, ProtocolOp<'_>> {
+fn parse_ldap_unbind_request(bytes: &[u8]) -> Result<ProtocolOp> {
     TaggedParser::from_ber_and_then(Class::Application, 2, bytes, |i| {
         // accept empty input, otherwise expect NULL
         if !i.is_empty() {
@@ -412,7 +412,7 @@ impl<'a> FromBer<'a, LdapError> for SearchResultEntry<'a> {
 }
 
 // SearchResultDone ::= [APPLICATION 5] LDAPResult
-fn parse_ldap_search_result_done(bytes: &[u8]) -> Result<'_, LdapResult<'_>> {
+fn parse_ldap_search_result_done(bytes: &[u8]) -> Result<LdapResult> {
     TaggedParser::from_ber_and_then(Class::Application, 5, bytes, parse_ldap_result_content)
 }
 
@@ -437,7 +437,7 @@ impl<'a> FromBer<'a, LdapError> for ModifyRequest<'a> {
 }
 
 // ModifyResponse ::= [APPLICATION 7] LDAPResult
-fn parse_ldap_modify_response(bytes: &[u8]) -> Result<'_, ModifyResponse<'_>> {
+fn parse_ldap_modify_response(bytes: &[u8]) -> Result<ModifyResponse> {
     TaggedParser::from_ber_and_then(Class::Application, 7, bytes, |i| {
         let (i, result) = parse_ldap_result_content(i)?;
         let res = ModifyResponse { result };
@@ -460,12 +460,12 @@ impl<'a> FromBer<'a, LdapError> for AddRequest<'a> {
 }
 
 // AddResponse ::= [APPLICATION 9] LDAPResult
-fn parse_ldap_add_response(bytes: &[u8]) -> Result<'_, LdapResult<'_>> {
+fn parse_ldap_add_response(bytes: &[u8]) -> Result<LdapResult> {
     TaggedParser::from_ber_and_then(Class::Application, 9, bytes, parse_ldap_result_content)
 }
 
 // DelRequest ::= [APPLICATION 10] LDAPDN
-fn parse_ldap_del_request(bytes: &[u8]) -> Result<'_, LdapDN<'_>> {
+fn parse_ldap_del_request(bytes: &[u8]) -> Result<LdapDN> {
     TaggedParser::from_ber_and_then(Class::Application, 10, bytes, |i| {
         let s = std::str::from_utf8(i).or(Err(Err::Error(LdapError::InvalidDN)))?;
         let oid = LdapDN(Cow::Borrowed(s));
@@ -474,7 +474,7 @@ fn parse_ldap_del_request(bytes: &[u8]) -> Result<'_, LdapDN<'_>> {
 }
 
 // DelResponse ::= [APPLICATION 11] LDAPResult
-fn parse_ldap_del_response(bytes: &[u8]) -> Result<'_, LdapResult<'_>> {
+fn parse_ldap_del_response(bytes: &[u8]) -> Result<LdapResult> {
     TaggedParser::from_ber_and_then(Class::Application, 11, bytes, parse_ldap_result_content)
 }
 
@@ -507,7 +507,7 @@ impl<'a> FromBer<'a, LdapError> for ModDnRequest<'a> {
 }
 
 // ModifyDNResponse ::= [APPLICATION 13] LDAPResult
-fn parse_ldap_moddn_response(bytes: &[u8]) -> Result<'_, LdapResult<'_>> {
+fn parse_ldap_moddn_response(bytes: &[u8]) -> Result<LdapResult> {
     TaggedParser::from_ber_and_then(Class::Application, 13, bytes, parse_ldap_result_content)
 }
 
@@ -526,12 +526,12 @@ impl<'a> FromBer<'a, LdapError> for CompareRequest<'a> {
 }
 
 // CompareResponse ::= [APPLICATION 15] LDAPResult
-fn parse_ldap_compare_response(bytes: &[u8]) -> Result<'_, LdapResult<'_>> {
+fn parse_ldap_compare_response(bytes: &[u8]) -> Result<LdapResult> {
     TaggedParser::from_ber_and_then(Class::Application, 15, bytes, parse_ldap_result_content)
 }
 
 // AbandonRequest ::= [APPLICATION 16] MessageID
-fn parse_ldap_abandon_request(bytes: &[u8]) -> Result<'_, MessageID> {
+fn parse_ldap_abandon_request(bytes: &[u8]) -> Result<MessageID> {
     let (rem, id) = TaggedValue::<u32, _, Implicit, { Class::APPLICATION }, 16>::from_ber(bytes)
         .map_err(Err::convert)?;
     Ok((rem, MessageID(id.into_inner())))
@@ -539,7 +539,7 @@ fn parse_ldap_abandon_request(bytes: &[u8]) -> Result<'_, MessageID> {
 
 // SearchResultReference ::= [APPLICATION 19] SEQUENCE
 //                                   SIZE (1..MAX) OF uri URI
-fn parse_ldap_search_result_ref(bytes: &[u8]) -> Result<'_, Vec<LdapString<'_>>> {
+fn parse_ldap_search_result_ref(bytes: &[u8]) -> Result<Vec<LdapString>> {
     TaggedParser::from_ber_and_then(
         Class::Application,
         19,
@@ -661,7 +661,7 @@ impl<'a> FromBer<'a, LdapError> for AuthenticationChoice<'a> {
 // SaslCredentials ::= SEQUENCE {
 //      mechanism               LDAPString,
 //      credentials             OCTET STRING OPTIONAL }
-fn parse_sasl_credentials(i: &[u8]) -> Result<'_, SaslCredentials<'_>> {
+fn parse_sasl_credentials(i: &[u8]) -> Result<SaslCredentials> {
     let (i, mechanism) = LdapString::from_ber(i)?;
     let (i, credentials) = opt(complete(map(
         parse_ldap_octet_string_as_slice,
@@ -677,17 +677,17 @@ fn parse_sasl_credentials(i: &[u8]) -> Result<'_, SaslCredentials<'_>> {
 // AttributeSelection ::= SEQUENCE OF selector LDAPString
 //      -- The LDAPString is constrained to
 //      -- <attributeSelector> in Section 4.5.1.8
-fn parse_attribute_selection(bytes: &[u8]) -> Result<'_, Vec<LdapString<'_>>> {
+fn parse_attribute_selection(bytes: &[u8]) -> Result<Vec<LdapString>> {
     Sequence::from_ber_and_then(bytes, many0(complete(LdapString::from_ber)))
 }
 
 // PartialAttributeList ::= SEQUENCE OF partialAttribute PartialAttribute
-fn parse_partial_attribute_list(bytes: &[u8]) -> Result<'_, Vec<PartialAttribute<'_>>> {
+fn parse_partial_attribute_list(bytes: &[u8]) -> Result<Vec<PartialAttribute>> {
     Sequence::from_ber_and_then(bytes, many0(complete(PartialAttribute::from_ber)))
 }
 
 // AttributeList ::= SEQUENCE OF attribute Attribute
-fn parse_attribute_list(bytes: &[u8]) -> Result<'_, Vec<Attribute<'_>>> {
+fn parse_attribute_list(bytes: &[u8]) -> Result<Vec<Attribute>> {
     Sequence::from_ber_and_then(bytes, many0(complete(Attribute::from_ber)))
 }
 
