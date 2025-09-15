@@ -21,8 +21,8 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
       # tools used in pre-commit hooks
-      - name: Install cargo-rdme
-        uses: ./.github/actions/install-cargo-rdme
+      - id: cargo-rdme
+        uses: rusticata/ci-action-rdme@v1
       # /tools
       - name: Install prek
         uses: ./.github/actions/install-prek
@@ -93,7 +93,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - id: cargo-rdme
-        uses: rusticata/ci-action-rdme@master
+        uses: rusticata/ci-action-rdme@v1
 
   doc:
     name: Build documentation
