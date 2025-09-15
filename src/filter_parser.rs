@@ -17,7 +17,7 @@ use std::borrow::Cow;
 //                         -- Constrained to <attributedescription>
 //                         -- [RFC4512]
 #[inline]
-fn parse_ldap_attribute_description(i: &[u8]) -> Result<LdapString> {
+fn parse_ldap_attribute_description(i: &[u8]) -> Result<'_, LdapString<'_>> {
     LdapString::from_ber(i)
 }
 
@@ -30,7 +30,9 @@ fn parse_ldap_attribute_description(i: &[u8]) -> Result<LdapString> {
 // AttributeValueAssertion ::= SEQUENCE {
 //      attributeDesc   AttributeDescription,
 //      assertionValue  AssertionValue }
-fn parse_ldap_attribute_value_assertion_content(content: &[u8]) -> Result<AttributeValueAssertion> {
+fn parse_ldap_attribute_value_assertion_content(
+    content: &[u8],
+) -> Result<'_, AttributeValueAssertion<'_>> {
     let (content, attribute_desc) = parse_ldap_attribute_description(content)?;
     let (content, assertion_value) = parse_ldap_assertion_value(content)?;
     let assertion = AttributeValueAssertion {
@@ -48,13 +50,13 @@ impl<'a> FromBer<'a, LdapError> for AttributeValueAssertion<'a> {
 
 // AssertionValue ::= OCTET STRING
 #[inline]
-fn parse_ldap_assertion_value(i: &[u8]) -> Result<&[u8]> {
+fn parse_ldap_assertion_value(i: &[u8]) -> Result<'_, &[u8]> {
     parse_ldap_octet_string_as_slice(i)
 }
 
 // AttributeValue ::= OCTET STRING
 #[inline]
-fn parse_ldap_attribute_value(i: &[u8]) -> Result<AttributeValue> {
+fn parse_ldap_attribute_value(i: &[u8]) -> Result<'_, AttributeValue<'_>> {
     map(parse_ldap_octet_string_as_slice, |v| {
         AttributeValue(Cow::Borrowed(v))
     })(i)
@@ -183,7 +185,7 @@ impl<'a> FromBer<'a, LdapError> for Filter<'a> {
 //           any     [1] AssertionValue,
 //           final   [2] AssertionValue } -- can occur at most once
 //      }
-fn parse_ldap_substrings_filter_content(i: &[u8]) -> Result<SubstringFilter> {
+fn parse_ldap_substrings_filter_content(i: &[u8]) -> Result<'_, SubstringFilter<'_>> {
     let (i, filter_type) = parse_ldap_attribute_description(i)?;
     let (i, substrings) =
         Sequence::from_ber_and_then(i, |inner| many1(complete(parse_ldap_substring))(inner))?;
@@ -194,7 +196,7 @@ fn parse_ldap_substrings_filter_content(i: &[u8]) -> Result<SubstringFilter> {
     Ok((i, filter))
 }
 
-fn parse_ldap_substring(bytes: &[u8]) -> Result<Substring> {
+fn parse_ldap_substring(bytes: &[u8]) -> Result<'_, Substring<'_>> {
     let (rem, any) = Any::from_ber(bytes).map_err(Err::convert)?;
     // in any case, this is an AssertionValue (== OCTET STRING)
     let b = AssertionValue(Cow::Borrowed(any.data));
@@ -211,7 +213,7 @@ fn parse_ldap_substring(bytes: &[u8]) -> Result<Substring> {
 //     type            [2] AttributeDescription OPTIONAL,
 //     matchValue      [3] AssertionValue,
 //     dnAttributes    [4] BOOLEAN DEFAULT FALSE }
-fn parse_ldap_matching_rule_assertion_content(i: &[u8]) -> Result<MatchingRuleAssertion> {
+fn parse_ldap_matching_rule_assertion_content(i: &[u8]) -> Result<'_, MatchingRuleAssertion<'_>> {
     // MatchingRuleId ::= LDAPString
     let (i, matching_rule) =
         OptTaggedParser::new(Class::ContextSpecific, Tag(1)).parse_ber(i, |_, content| {

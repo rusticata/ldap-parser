@@ -1,10 +1,3 @@
-//! [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE-MIT)
-//! [![Apache License 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE-APACHE)
-//! [![docs.rs](https://docs.rs/ldap-parser/badge.svg)](https://docs.rs/ldap-parser)
-//! [![crates.io](https://img.shields.io/crates/v/ldap-parser.svg)](https://crates.io/crates/ldap-parser)
-//! [![Github CI](https://github.com/rusticata/ldap-parser/workflows/Continuous%20integration/badge.svg)](https://github.com/rusticata/ldap-parser/actions)
-//! [![Minimum rustc version](https://img.shields.io/badge/rustc-1.44.0+-lightgray.svg)](#rust-version-requirements)
-//!
 //! # LDAP Parser
 //!
 //! A Lightweight Directory Access Protocol (LDAP) ([RFC4511]) parser, implemented with the

@@ -8,10 +8,31 @@ on:
     - cron: '0 18 * * *'
 
 env:
-  check_ext_rust_version: nightly-2024-06-30
+  check_ext_rust_version: nightly-2025-08-06
   # ^ sync with https://github.com/awslabs/cargo-check-external-types/blob/main/rust-toolchain.toml
 
 jobs:
+  pre_commit:
+    timeout-minutes: 5
+    name: prek
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+      # tools used in pre-commit hooks
+      - name: Install cargo-rdme
+        uses: ./.github/actions/install-cargo-rdme
+      # /tools
+      - name: Install prek
+        uses: ./.github/actions/install-prek
+        id: prek
+        with:
+          skip-prek-hooks: false
+          save-cache: true
+      - name: Run prek
+        run: prek --all-files --verbose --hook-stage manual
+
   check:
     name: Check
     runs-on: ubuntu-latest
@@ -26,9 +47,7 @@ jobs:
       - name: Install ${{ matrix.rust }} toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: ${{ matrix.rust }}
-          override: true
       - name: Cargo update
         run: cargo update
       - run: RUSTFLAGS="-D warnings" cargo check
@@ -68,6 +87,18 @@ jobs:
           components: clippy
       - run: cargo clippy -- -D warnings
 
+  readme:
+    name: Check if README is up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-rdme
+        uses: ./.github/actions/install-cargo-rdme
+      - run: |
+          cargo rdme --check
+
   doc:
     name: Build documentation
     runs-on: ubuntu-latest
@@ -98,5 +129,6 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.check_ext_rust_version }}
-      - run: cargo install --locked cargo-check-external-types
+      - name: Install cargo-check-external-types
+        uses: ./.github/actions/install-cargo-check-external-types
       - run: cargo check-external-types
