@@ -92,12 +92,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-      - name: Install cargo-rdme
-        uses: ./.github/actions/install-cargo-rdme
-      - run: |
-          cargo rdme --check
+      - id: cargo-rdme
+        uses: rusticata/ci-action-rdme@master
 
   doc:
     name: Build documentation
