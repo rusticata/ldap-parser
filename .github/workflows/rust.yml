@@ -19,7 +19,7 @@ jobs:
         uses: rusticata/ci-action-rdme@v1
       # /tools
       - id: prek
-        uses: rusticata/ci-action-prek@master
+        uses: rusticata/ci-action-prek@v1
 
   check:
     name: Check
