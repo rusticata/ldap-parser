@@ -20,7 +20,7 @@ programming), tests, and fuzzing. It also aims to be panic-free.
 The code is available on [Github](https://github.com/rusticata/ldap-parser)
 and is part of the [Rusticata](https://github.com/rusticata) project.
 
-# Examples
+## Examples
 
 Parsing an LDAP message (in BER format):
 
@@ -52,7 +52,15 @@ match res {
 
 <!-- cargo-rdme end -->
 
-## Changes
+# Encoding
+Using the `encoding` feature, this library also allows to encode LDAP messages.
+
+While this uses the `ToDer`-Trait from the underlying `asn1-rs`-Crate,
+the messages are encoded in the LDAP BER variant, not actual DER
+(the difference being primarily that DER requires explicit tagging,
+while the ASN.1 definition for LDAP requests implicit tagging)
+
+# Changes
 
 See [CHANGELOG.md](CHANGELOG.md)
 

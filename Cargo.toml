@@ -1,6 +1,6 @@
 [package]
 name = "ldap-parser"
-version = "0.5.0"
+version = "0.6.0"
 description = "Parser for the LDAP protocol (RFC 4511)"
 authors = ["Pierre Chifflier <chifflier@wzdftpd.net>"]
 edition = "2018"
@@ -10,7 +10,7 @@ homepage = "https://github.com/rusticata/ldap-parser"
 repository = "https://github.com/rusticata/ldap-parser.git"
 categories = ["parser-implementations"]
 readme = "README.md"
-rust-version = "1.63"
+rust-version = "1.68"
 
 include = [
   "LICENSE-*",
@@ -24,17 +24,21 @@ include = [
   "tests/*.rs"
 ]
 
+[features]
+default = []
+encoder = []
+
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 asn1-rs = "0.7"
-rusticata-macros = "4.0"
+rusticata-macros = "5.0"
 thiserror = "2.0"
 
 [dev-dependencies]
-hex-literal = "0.4"
+hex-literal = "0.4" #Note: 1.0+ require rust edition 2024, which is larger than our current MSRV 1.68
 
 [package.metadata.cargo_check_external_types]
 allowed_external_types = [

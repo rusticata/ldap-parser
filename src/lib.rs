@@ -67,6 +67,11 @@ mod parser;
 
 pub use parser::*;
 
+#[cfg(feature = "encoder")]
+pub mod encoder; // public to allow use of the helper traits and funcs for Extended Request encoding
+
 pub use asn1_rs;
 pub use asn1_rs::nom::{Err, IResult};
 pub use asn1_rs::FromBer;
+#[cfg(feature = "encoder")]
+pub use asn1_rs::ToDer;

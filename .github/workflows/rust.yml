@@ -28,7 +28,7 @@ jobs:
       matrix:
         rust:
           - stable
-          - 1.63.0
+          - 1.68.0
           - nightly
     steps:
       - uses: actions/checkout@v5
@@ -36,8 +36,6 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - name: Cargo update
-        run: cargo update
       - run: RUSTFLAGS="-D warnings" cargo check
 
   test_features:

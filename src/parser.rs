@@ -32,6 +32,9 @@ impl<'a> FromBer<'a, LdapError> for LdapString<'a> {
     fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         let (i, b) = parse_ldap_octet_string_as_slice(bytes)?;
         // convert to UTF-8
+        if !b.is_empty() && b[0] == 4 {
+            panic!("Foo");
+        }
         let s = std::str::from_utf8(b).or(Err(Err::Error(LdapError::InvalidString)))?;
         Ok((i, LdapString(Cow::Borrowed(s))))
     }
@@ -328,9 +331,6 @@ impl<'a> FromBer<'a, LdapError> for BindResponse<'a> {
             let (i, server_sasl_creds) = OptTaggedParser::new(Class::ContextSpecific, Tag(7))
                 .parse_ber(i, |_, data| Ok((&b""[..], Cow::Borrowed(data))))?;
 
-            // opt(complete(parse_ber_tagged_implicit_g(7, |content, _, _| {
-            // Ok((&b""[..], Cow::Borrowed(content)))
-            // })))(i)?;
             let req = BindResponse {
                 result,
                 server_sasl_creds,
@@ -629,27 +629,21 @@ impl<'a> FromBer<'a, LdapError> for AuthenticationChoice<'a> {
     fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
         let (rem, header) = Header::from_ber(bytes).map_err(Err::convert)?;
         match header.tag().0 {
-            0 => {
-                // assume len is primitive, and just take bytes
+            0 if header.is_primitive() => {
+                // primitive, just take bytes
                 let sz = header
                     .length()
                     .definite()
                     .map_err(|e| Err::Error(LdapError::Ber(e)))?;
                 let (i, b) = take(sz)(rem)?;
-                // // other solution: read content as octetstring and get slice
-                // let (i, b) = map_res(
-                //     |d| {
-                //         ber_read_element_content_as(
-                //             d,
-                //             BerTag::OctetString,
-                //             header.len,
-                //             header.is_constructed(),
-                //             1,
-                //         )
-                //     },
-                //     |o| o.as_slice(),
-                // )(rem)
-                // .map_err(Err::convert)?;
+                Ok((i, AuthenticationChoice::Simple(Cow::Borrowed(b))))
+            }
+            0 => {
+                // contructed, probably explicitly tagged:
+                // this isn't strictly legal following the LDAP rules,
+                // but can probably still be correctly parsed:
+                let (i, b) = <&[u8]>::from_ber(rem).map_err(Err::convert)?;
+
                 Ok((i, AuthenticationChoice::Simple(Cow::Borrowed(b))))
             }
             3 => map(parse_sasl_credentials, AuthenticationChoice::Sasl)(rem),
@@ -661,7 +655,13 @@ impl<'a> FromBer<'a, LdapError> for AuthenticationChoice<'a> {
 // SaslCredentials ::= SEQUENCE {
 //      mechanism               LDAPString,
 //      credentials             OCTET STRING OPTIONAL }
-fn parse_sasl_credentials(i: &[u8]) -> Result<'_, SaslCredentials<'_>> {
+fn parse_sasl_credentials(mut i: &[u8]) -> Result<'_, SaslCredentials<'_>> {
+    // check if SaslCredentials given have an explicit Sequence Tag, if so skip its header:
+    // (for fully compliant LDAP messages, the SaslCredentials should be an implicit tag from the authentication choice)
+    let (rem, begin_header) = Header::from_ber(i).map_err(Err::convert)?;
+    if begin_header.tag() == Tag::Sequence {
+        i = rem;
+    }
     let (i, mechanism) = LdapString::from_ber(i)?;
     let (i, credentials) = opt(complete(map(
         parse_ldap_octet_string_as_slice,

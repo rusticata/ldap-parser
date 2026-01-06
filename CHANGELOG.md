@@ -8,6 +8,13 @@
 
 ### Thanks
 
+## 0.6.0
+
+### Changed/Fixed
+
+- Added encoding LDAP messages to BER
+- Set MSRV to 1.68
+
 ## 0.5.0
 
 ### Changed/Fixed
