@@ -76,7 +76,7 @@ pub(crate) fn print_hex_dump(bytes: &[u8], max_len: usize) {
     if m == 0 {
         println!("<empty>");
     }
-    print!("{}", &bytes[..m].to_hex(16));
+    print!("{}", bytes[..m].to_hex(16));
     if bytes.len() > max_len {
         println!("... <continued>");
     }
