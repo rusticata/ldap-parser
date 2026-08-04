@@ -108,6 +108,9 @@ impl<'a> FromBer<'a, LdapError> for Attribute<'a> {
 
 // MatchingRuleId ::= LDAPString
 
+/// Attempt to parse a `Filter` object and return the result, or an error
+///
+/// This function is recursive, and has a maximum limit (see `MAX_FILTER_DEPTH` constant)
 // Filter ::= CHOICE {
 //     and             [0] SET SIZE (1..MAX) OF filter Filter,
 //     or              [1] SET SIZE (1..MAX) OF filter Filter,
@@ -121,7 +124,31 @@ impl<'a> FromBer<'a, LdapError> for Attribute<'a> {
 //     extensibleMatch [9] MatchingRuleAssertion,
 //     ...  }
 impl<'a> FromBer<'a, LdapError> for Filter<'a> {
+    #[inline]
     fn from_ber(bytes: &'a [u8]) -> ParseResult<'a, Self, LdapError> {
+        filter_from_ber(MAX_FILTER_DEPTH)(bytes)
+    }
+}
+
+/// Helper function to build a combinator to parse a `Filter` parser, with depth limit argument
+#[inline]
+const fn filter_from_ber<'i>(
+    limit: usize,
+) -> impl FnMut(&'i [u8]) -> ParseResult<'i, Filter<'i>, LdapError> {
+    move |bytes: &'i [u8]| Filter::from_ber_recursive(bytes, limit)
+}
+
+impl<'a> Filter<'a> {
+    /// Parse a `Filter`, but with recursion limit.
+    ///
+    /// If `limit` reaches zero, returns an error `LdapError::FilterMaxDepth`.
+    fn from_ber_recursive(bytes: &'a [u8], limit: usize) -> ParseResult<'a, Self, LdapError> {
+        if limit == 0 {
+            return Err(Err::Error(LdapError::FilterMaxDepth));
+        }
+        // new limit
+        let limit = limit - 1;
+
         // read next element as ANY and look tag value
         let (rem, any) = Any::from_ber(bytes).map_err(Err::convert)?;
         // eprintln!("parse_ldap_filter: [{}] {:?}", header.tag.0, header);
@@ -132,14 +159,14 @@ impl<'a> FromBer<'a, LdapError> for Filter<'a> {
         let content = any.data;
         let (_, filter) = match any.tag().0 {
             0 => {
-                let (rem, sub_filters) = many1(complete(Filter::from_ber))(content)?;
+                let (rem, sub_filters) = many1(complete(filter_from_ber(limit)))(content)?;
                 Ok((rem, Filter::And(sub_filters)))
             }
             1 => {
-                let (rem, sub_filters) = many1(complete(Filter::from_ber))(content)?;
+                let (rem, sub_filters) = many1(complete(filter_from_ber(limit)))(content)?;
                 Ok((rem, Filter::Or(sub_filters)))
             }
-            2 => map(Filter::from_ber, |f| Filter::Not(Box::new(f)))(content),
+            2 => map(filter_from_ber(limit), |f| Filter::Not(Box::new(f)))(content),
             3 => map(
                 parse_ldap_attribute_value_assertion_content,
                 Filter::EqualityMatch,
