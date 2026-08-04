@@ -6,6 +6,9 @@ use asn1_rs::{FromBer, ToStatic};
 use rusticata_macros::newtype_enum;
 use std::borrow::Cow;
 
+/// Hard limit for maximum recursion depth when parsing LDAP `Filter`
+pub const MAX_FILTER_DEPTH: usize = 32;
+
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, ToStatic)]
 pub struct ProtocolOpTag(pub u32);
 

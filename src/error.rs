@@ -32,6 +32,9 @@ pub enum LdapError {
     #[error("Invalid Type for Message")]
     InvalidMessageType,
 
+    #[error("Parsing Filter reached maximum depth")]
+    FilterMaxDepth,
+
     #[error("Unknown error")]
     Unknown,
 
