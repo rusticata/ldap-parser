@@ -8,6 +8,28 @@
 
 ### Thanks
 
+## 0.5.1
+
+### Changed/Fixed
+
+Security:
+
+Fix a potential Denial-of-Service triggered by sending a specially
+crafted packet containing a deeply recursive filter.
+Parsing the filter can trigger a stack overflowm causing crash of
+application using ldap-parser.
+Affected functions are `Filter::from_ber` and functions calling it (like
+`LdapMessage::from_ber`).
+
+Correction: filter parsing functions now include a compile-time fixed
+maximum depth. Another parsing function has been added with a maximum
+depth argument, for convenience.
+
+This was reported independently by multiple sources, credits go to:
+- The Suricata Team
+- Nozomi Networks Labs
+- Kevin Valerio and Quan Nguyen from Trail of Bits in collaboration with OpenAI
+
 ## 0.5.0
 
 ### Changed/Fixed
